@@ -1,0 +1,9 @@
+RewriteEngine On
+
+# Mevcut dosya/dizin varsa doğrudan sun
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Diğer her şeyi front controller'a yönlendir
+RewriteRule ^ index.php [QSA,L]

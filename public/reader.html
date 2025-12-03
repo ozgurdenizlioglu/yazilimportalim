@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>QR Reader (Offline destekli)</title>
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#0d6efd">
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin:0; padding:16px; }
+    .row { display:flex; gap:8px; flex-wrap:wrap; }
+    input, select, button { font-size:16px; padding:10px; }
+    .card { border:1px solid #ddd; border-radius:10px; padding:12px; margin:10px 0; }
+    .ok { color: #0a7c2f; }
+    .err { color: #b00020; }
+    #status { font-size:14px; opacity:.8; }
+  </style>
+</head>
+<body>
+  <h1>QR Reader</h1>
+  <div id="status">Durum: <span id="onlineStatus"></span></div>
+
+  <div class="card">
+    <h3>Elle Token/UID Girişi</h3>
+    <div class="row">
+      <input id="token" placeholder="token (uid.ts.n.sig) veya boş geç" style="flex:1;">
+      <input id="uid" placeholder="uid (token yoksa)" inputmode="numeric" style="width:120px;">
+      <select id="type">
+        <option value="in">Giriş</option>
+        <option value="out">Çıkış</option>
+      </select>
+      <button id="sendBtn">Kaydet</button>
+    </div>
+    <div id="msg"></div>
+  </div>
+
+  <div class="card">
+    <h3>Kuyruk</h3>
+    <div class="row">
+      <button id="syncBtn">Senkronize Et</button>
+      <button id="clearBtn">Kuyruğu Temizle</button>
+    </div>
+    <pre id="queueView" style="white-space:pre-wrap;"></pre>
+  </div>
+
+  <script>
+    // Basit localStorage kuyruğu
+    const qKey = 'attendanceQueueV1';
+
+    function getQueue() {
+      try { return JSON.parse(localStorage.getItem(qKey)) || []; } catch { return []; }
+    }
+    function setQueue(q) {
+      localStorage.setItem(qKey, JSON.stringify(q));
+      renderQueue();
+    }
+    function pushQueue(item) {
+      const q = getQueue();
+      q.push(item);
+      setQueue(q);
+    }
+    function renderQueue() {
+      const q = getQueue();
+      document.getElementById('queueView').textContent = q.map((x,i)=> `${i+1}) ${x.type} ${x.token?('token:'+x.token):('uid:'+x.uid)} @${new Date(x.when).toLocaleString()}`).join('\n');
+    }
+
+    async function sendNow(item) {
+      const res = await fetch('/api/attendance/scan', {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json' },
+        body: JSON.stringify({ type: item.type, token: item.token || undefined, uid: item.uid || undefined })
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(()=>({}));
+        throw new Error(data.error || res.statusText);
+      }
+      const data = await res.json().catch(()=>({}));
+      if (!data.ok) throw new Error(data.error || 'Unknown');
+      return true;
+    }
+
+    async function trySync() {
+      if (!navigator.onLine) return;
+      let q = getQueue();
+      if (q.length === 0) return;
+      const keep = [];
+      for (const item of q) {
+        try {
+          await sendNow(item);
+        } catch (e) {
+          // Hata kalıcı olabilir (token eski vs). Kuyrukta tutalım ve devam.
+          keep.push(item);
+        }
+      }
+      setQueue(keep);
+      statusMsg(`Senkron tamam. Kalan: ${keep.length}`, keep.length ? 'err' : 'ok');
+    }
+
+    function statusMsg(txt, cls) {
+      const el = document.getElementById('msg');
+      el.innerHTML = `<div class="${cls||''}">${txt}</div>`;
+    }
+
+    document.getElementById('sendBtn').addEventListener('click', async () => {
+      const token = document.getElementById('token').value.trim();
+      const uid = document.getElementById('uid').value.trim();
+      const type = document.getElementById('type').value;
+
+      if (!token && !uid) {
+        statusMsg('Token veya UID girin.', 'err'); return;
+      }
+
+      const item = { token: token || null, uid: token ? null : (uid||null), type, when: Date.now() };
+
+      if (navigator.onLine) {
+        try {
+          await sendNow(item);
+          statusMsg('Kaydedildi (online).', 'ok');
+        } catch (e) {
+          // Çevrimiçi görünüp hata aldıysa kuyruğa at
+          pushQueue(item);
+          statusMsg('Sunucu hatası: Kuyruğa eklendi. ' + e.message, 'err');
+        }
+      } else {
+        pushQueue(item);
+        statusMsg('Çevrimdışı: Kuyruğa eklendi.', 'ok');
+      }
+    });
+
+    document.getElementById('syncBtn').addEventListener('click', trySync);
+    document.getElementById('clearBtn').addEventListener('click', () => setQueue([]));
+
+    function updateOnlineStatus() {
+      document.getElementById('onlineStatus').textContent = navigator.onLine ? 'Online' : 'Offline';
+    }
+    window.addEventListener('online', () => { updateOnlineStatus(); trySync(); });
+    window.addEventListener('offline', updateOnlineStatus);
+    updateOnlineStatus();
+    renderQueue();
+
+    // Service worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(console.error);
+    }
+  </script>
+</body>
+</html>

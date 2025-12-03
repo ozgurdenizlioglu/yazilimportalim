@@ -1,0 +1,1 @@
+"C:\Program Files\PostgreSQL\17\bin\psql.exe" "host=127.0.0.1 port=5432 dbname=myapp user=postgres password=Ozgur16betul" -f C:\Users\ozgur\myapp\database\migrations\002_add_something_to_users.sql

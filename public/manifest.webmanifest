@@ -1,0 +1,9 @@
+{
+  "name": "QR Reader",
+  "short_name": "Reader",
+  "start_url": "/reader.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0d6efd",
+  "icons": []
+}
