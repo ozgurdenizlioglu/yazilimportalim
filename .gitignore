@@ -1,35 +1,73 @@
-# Composer
-/vendor/
-
-# Env files
-.env
-.env.*.local
-.env.local
-
-# Logs, cache, sessions, temp
-/storage/logs/
-storage/framework/cache/
-storage/framework/sessions/
-storage/framework/views/
-tmp/
-cache/
-logs/
-
-# Node/Yarn
-/node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# IDE / Editor
-/.idea/
-/.vscode/
-/*.code-workspace
-
-# OS
+# OS ve editor dosyaları
 .DS_Store
 Thumbs.db
+*.log
+*.tmp
+*.swp
+*.swo
+*.bak
 
-# Misc build outputs
-/public/build/
-public/hot
+# PHP bağımlılık yönetimi (Composer)
+vendor/
+composer.lock
+
+# Ortam/secret dosyaları
+.env
+.env.*
+!.env.example
+
+# Önbellek ve derlemeler
+cache/
+tmp/
+temp/
+logs/
+storage/
+storage/*.key
+*.cache
+
+# IDE/Editor
+.vscode/
+.idea/
+*.iml
+
+# PHPUnit
+.phpunit.result.cache
+coverage/
+
+# Laravel/Lumen (kullanıyorsan)
+bootstrap/cache/
+storage/
+homestead.yaml
+Homestead.yaml
+.env.backup
+
+# Symfony (kullanıyorsan)
+var/
+app/cache/
+app/logs/
+
+# WordPress (kullanıyorsan)
+wp-content/uploads/
+wp-content/cache/
+wp-content/upgrade/
+wp-content/advanced-cache.php
+wp-content/backup-db/
+wp-content/backups/
+wp-content/blogs.dir/
+wp-content/upgrade/
+wp-content/wp-cache-config.php
+wp-content/mu-plugins/
+# wp-config.php gibi hassas dosyaları da track etme
+wp-config.php
+
+# Node (ön uç araçları kullanıyorsan)
+node_modules/
+npm-debug.log*
+yarn-error.log*
+
+# Build çıktıları
+dist/
+build/
+public/build/
+public/assets/*
+!public/assets/.gitkeep

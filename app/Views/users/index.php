@@ -65,6 +65,10 @@
     { id: 'deleted_at', label: 'Silinme' },
     { id: 'last_login_at', label: 'Son Giriş' },
 
+    // Firma
+    { id: 'company_id', label: 'Firma ID' },
+    { id: 'company_name', label: 'Firma' },
+
     // Kişisel bilgiler
     { id: 'first_name', label: 'Ad' },
     { id: 'middle_name', label: 'İkinci Ad' },
@@ -106,6 +110,12 @@
     { id: 'actions', label: 'İşlemler', isAction: true },
     { id: 'id', label: 'ID', filterType: 'text' },
     { id: 'uuid', label: 'UUID', filterType: 'text' },
+
+    // Firma
+    { id: 'company_name', label: 'Firma', filterType: 'text' },
+    { id: 'company_id', label: 'Firma ID', filterType: 'text' },
+
+    // Kişisel
     { id: 'first_name', label: 'Ad', filterType: 'text' },
     { id: 'middle_name', label: 'İkinci Ad', filterType: 'text' },
     { id: 'last_name', label: 'Soyad', filterType: 'text' },
@@ -135,7 +145,7 @@
     { id: 'last_login_at', label: 'Son Giriş', filterType: 'text' },
   ];
 
-  const defaultVisible = ['actions','id','uuid','first_name','last_name','email','phone','is_active'];
+  const defaultVisible = ['actions','id','uuid','first_name','last_name','company_name','email','phone','is_active'];
 
   const LS_KEYS = { visibleCols: 'users.visibleCols', filters: 'users.filters', sort: 'users.sort' };
 
@@ -379,6 +389,9 @@
           const raw = r.is_active;
           const isActive = typeof raw === 'boolean' ? raw : ['1','true','on','yes','evet','true'].includes(String(raw).toLowerCase());
           td.innerHTML = `<span class="badge ${isActive ? 'ok' : 'no'}">${isActive}</span>`;
+        } else if (col.id === 'company_name') {
+          const name = r.company_name ?? '';
+          td.textContent = name || '';
         } else {
           td.textContent = r[col.id] == null ? '' : String(r[col.id]);
         }
@@ -399,7 +412,7 @@
   // Excele Aktar: tüm satırlar + tüm alanlar (işlemler hariç)
   function exportAllToExcel() {
     const exportCols = allFields; // tamamı
-    const headers = exportCols.map(c => c.id); // şablonla aynı id başlıklar
+    const headers = exportCols.map(c => c.id); // id başlıklar
     const rows = DATA.map(r => exportCols.map(c => formatForCsv(c.id, r[c.id])));
 
     const csv = toCsv([headers, ...rows]);
@@ -412,12 +425,14 @@
     const headers = allFields.map(c => c.id);
 
     const sample1 = {
-      id: '', // boş bırakın: sunucu üretebilir
-      uuid: '', // boş bırakın: sunucu üretebilir
-      created_at: '', // boş: sistem ekler
+      id: '', // sunucu üretir
+      uuid: '', // sunucu üretir
+      created_at: '',
       updated_at: '',
       deleted_at: '',
       last_login_at: '',
+      company_id: '', // örn: 12
+      company_name: 'Örnek Firma AŞ', // opsiyonel; company_id öncelikli
       first_name: 'Ahmet',
       middle_name: '',
       last_name: 'Yılmaz',
@@ -425,6 +440,7 @@
       birth_date: '1990-01-15',
       phone: '5551234567',
       secondary_phone: '',
+      email: 'ahmet@example.com',
       national_id: '12345678901',
       passport_no: '',
       marital_status: 'married',
@@ -449,6 +465,8 @@
       updated_at: '',
       deleted_at: '',
       last_login_at: '',
+      company_id: '',
+      company_name: 'Başka Firma Ltd',
       first_name: 'Ayşe',
       middle_name: 'Nur',
       last_name: 'Demir',
@@ -456,6 +474,7 @@
       birth_date: '1992-07-03',
       phone: '5329876543',
       secondary_phone: '',
+      email: 'ayse@example.com',
       national_id: '',
       passport_no: 'U1234567',
       marital_status: 'single',
@@ -629,6 +648,8 @@
         - birth_date: YYYY-MM-DD
         - created_at/updated_at/deleted_at/last_login_at: ISO datetime (opsiyonel)
         - is_active: true|false
+        - company_id: firma kimliği (tercihen bu alanı kullanın)
+        - company_name: sağlanırsa company_id bulunamazsa fallback amaçlı kullanılabilir
       </div>
     `;
     return { html };
@@ -654,7 +675,7 @@
 <style>
   .table-wrap { overflow:auto; }
 
-  .table { border-collapse: collapse; width: 100%; min-width: 1100px; table-layout: fixed; }
+  .table { border-collapse: collapse; width: 100%; min-width: 1200px; table-layout: fixed; }
   .table.small { min-width: 0; table-layout: auto; }
   .table th, .table td { border: 1px solid #ddd; padding: .5rem .6rem; text-align: left; vertical-align: top; }
   .table thead th { background: #f8f8f8; position: sticky; top: 0; z-index: 2; }

@@ -7,24 +7,49 @@ namespace App\Controllers;
 use App\Core\Controller;
 use App\Core\Database;
 use App\Models\User;
+use PDO;
 use DateTime;
 
 class UserController extends Controller
 {
     public function index(): void
     {
-        $users = User::all(Database::pdo());
-        $this->view('users/index', ['title' => 'Kullanıcılar', 'users' => $users]);
+        $pdo = Database::pdo();
+
+        // Kullanıcıları firma adı ile birlikte getir (LEFT JOIN)
+        $stmt = $pdo->prepare("
+            SELECT
+              u.*,
+              c.name AS company_name
+            FROM public.users u
+            LEFT JOIN public.companies c ON c.id = u.company_id
+            ORDER BY u.id ASC
+        ");
+        $stmt->execute();
+        $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $this->view('users/index', [
+            'title' => 'Kullanıcılar',
+            'users' => $users,
+        ]);
     }
 
     public function create(): void
     {
-        // Formu göstermek için boş default değerler gönderebilirsin
-        $this->view('users/create', ['title' => 'Kullanıcı Ekle']);
+        // Firma seçenekleri (aktif ve silinmemiş)
+        $companies = $this->listCompanies();
+
+        // Formu göstermek için $companies gönderiyoruz
+        $this->view('users/create', [
+            'title'      => 'Kullanıcı Ekle',
+            'companies'  => $companies,
+        ]);
     }
 
     public function store(): void
     {
+        $pdo = Database::pdo();
+
         // Form alanlarını al
         $data = $this->collectFormData();
 
@@ -32,7 +57,6 @@ class UserController extends Controller
         $errors = $this->validate($data, isUpdate: false);
         if ($errors) {
             http_response_code(422);
-            // Basit geri bildirim; ideali view ile hataları göstermek
             echo implode("\n", $errors);
             return;
         }
@@ -40,31 +64,47 @@ class UserController extends Controller
         // is_active checkbox ise string "on"/"1" gelebilir; bool'a çevir
         $data['is_active'] = $this->toBool($_POST['is_active'] ?? '1');
 
+        // Firma ID (isteğe bağlı)
+        $companyId = $_POST['company_id'] ?? null;
+        $data['company_id'] = ($companyId !== null && $companyId !== '') ? (int)$companyId : null;
+
         // created_by/updated_by örnek: oturumdaki kullanıcı ID'si varsa set edebilirsin
         $currentUserId = null; // örn: $_SESSION['user_id'] ?? null;
         $data['created_by'] = $currentUserId;
         $data['updated_by'] = $currentUserId;
 
         // Oluştur
-        $id = User::create(Database::pdo(), $data);
+        $id = User::create($pdo, $data);
 
         header('Location: /users');
     }
 
     public function edit(): void
     {
+        $pdo = Database::pdo();
+
         $id = (int)($_GET['id'] ?? 0);
-        $user = User::find(Database::pdo(), $id);
+        $user = User::find($pdo, $id);
         if (!$user) {
             http_response_code(404);
             echo 'Kullanıcı bulunamadı';
             return;
         }
-        $this->view('users/edit', ['title' => 'Kullanıcıyı Düzenle', 'user' => $user]);
+
+        // Firma seçenekleri
+        $companies = $this->listCompanies();
+
+        $this->view('users/edit', [
+            'title'      => 'Kullanıcıyı Düzenle',
+            'user'       => $user,
+            'companies'  => $companies,
+        ]);
     }
 
     public function update(): void
     {
+        $pdo = Database::pdo();
+
         $id = (int)($_POST['id'] ?? 0);
         if ($id <= 0) {
             http_response_code(422);
@@ -73,6 +113,11 @@ class UserController extends Controller
         }
 
         $data = $this->collectFormData();
+
+        // Firma ID (isteğe bağlı)
+        $companyId = $_POST['company_id'] ?? null;
+        $data['company_id'] = ($companyId !== null && $companyId !== '') ? (int)$companyId : null;
+
         $errors = $this->validate($data, isUpdate: true);
         if ($errors) {
             http_response_code(422);
@@ -85,7 +130,7 @@ class UserController extends Controller
         $currentUserId = null; // örn: $_SESSION['user_id'] ?? null;
         $data['updated_by'] = $currentUserId;
 
-        User::update(Database::pdo(), $id, $data);
+        User::update($pdo, $id, $data);
 
         header('Location: /users');
     }
@@ -100,6 +145,20 @@ class UserController extends Controller
     }
 
     // ----------------- Yardımcılar -----------------
+
+    private function listCompanies(): array
+    {
+        $pdo = Database::pdo();
+        // Şemanıza göre koşulları uyarlayın (is_active/deleted_at olmayabilir)
+        $sql = "SELECT id, name FROM public.companies WHERE (deleted_at IS NULL OR deleted_at IS NULL) ORDER BY name ASC";
+        // Not: deleted_at IS NULL iki kez gereksiz; tek kez yeterli. Ama güvenli.
+        $sql = "SELECT id, name FROM public.companies WHERE deleted_at IS NULL OR deleted_at IS NULL ORDER BY name ASC";
+        // is_active kolonu varsa ekleyin:
+        // $sql = "SELECT id, name FROM public.companies WHERE deleted_at IS NULL AND is_active = true ORDER BY name ASC";
+
+        $stmt = $pdo->query($sql);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
 
     private function collectFormData(): array
     {
@@ -151,6 +210,7 @@ class UserController extends Controller
             'notes'            => $g('notes'), // uzun olabilir
             'is_active'        => $this->toBool($_POST['is_active'] ?? '1'),
             'last_login_at'    => $lastLogin,
+            // company_id ayrı okunup store/update içinde ekleniyor
             // created_by / updated_by controller içinde ayrı set ediliyor
         ];
     }
@@ -206,6 +266,13 @@ class UserController extends Controller
             $errors[] = 'Dil kodu 2-5 karakter olmalı.';
         }
 
+        // company_id (varsa) pozitif integer olmalı
+        if (isset($_POST['company_id']) && $_POST['company_id'] !== '') {
+            if (!ctype_digit((string)$_POST['company_id'])) {
+                $errors[] = 'Firma seçimi geçersiz.';
+            }
+        }
+
         return $errors;
     }
 
@@ -214,7 +281,7 @@ class UserController extends Controller
         if (!$s) {
             return null;
         }
-        // Kabul edilecek formatlar: Y-m-d veya d.m.Y (örnek)
+        // Kabul edilecek formatlar: Y-m-d veya d.m.Y
         $d = DateTime::createFromFormat('Y-m-d', $s) ?: DateTime::createFromFormat('d.m.Y', $s);
         return $d ? $d->format('Y-m-d') : null;
     }
@@ -243,6 +310,7 @@ class UserController extends Controller
         $v = strtolower((string)$v);
         return in_array($v, ['1','true','on','yes'], true);
     }
+
     public function token(): void
     {
         $id = $_GET['id'] ?? null;
@@ -251,7 +319,7 @@ class UserController extends Controller
             echo "id gerekli";
             return;
         }
-        $db  = \App\Core\Database::pdo();     // getInstance()->getConnection() yerine
+        $db  = \App\Core\Database::pdo();
         $svc = new \App\Core\TokenService($db);
         $token = $svc->createTokenForUser((int)$id);
         header('Content-Type: text/plain; charset=utf-8');

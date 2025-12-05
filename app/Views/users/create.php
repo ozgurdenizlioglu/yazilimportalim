@@ -129,6 +129,20 @@
     </label>
   </fieldset>
 
+  <fieldset>
+    <legend>Firma</legend>
+    <label>Firma Seçimi
+      <select name="company_id">
+        <option value="">— Seçiniz —</option>
+        <?php foreach (($companies ?? []) as $c): ?>
+          <option value="<?= (int)$c['id'] ?>">
+            <?= Helpers::e($c['name']) ?>
+          </option>
+        <?php endforeach; ?>
+      </select>
+    </label>
+  </fieldset>
+
   <div class="actions" style="margin-top:1rem; display:flex; gap:.75rem;">
     <button type="submit">Kaydet</button>
     <a href="/users">İptal</a>

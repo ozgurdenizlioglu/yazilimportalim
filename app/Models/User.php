@@ -45,8 +45,9 @@ final class User
                 deleted_at,
                 last_login_at,
                 created_by,
-                updated_by
-            FROM users
+                updated_by,
+                company_id
+            FROM public.users
             WHERE deleted_at IS NULL
             ORDER BY id
         ";
@@ -89,8 +90,9 @@ final class User
                 deleted_at,
                 last_login_at,
                 created_by,
-                updated_by
-            FROM users
+                updated_by,
+                company_id
+            FROM public.users
             WHERE id = :id AND deleted_at IS NULL
         ";
         $stmt = $pdo->prepare($sql);
@@ -104,7 +106,7 @@ final class User
     public static function create(PDO $pdo, array $data): int
     {
         $sql = "
-            INSERT INTO users (
+            INSERT INTO public.users (
                 first_name,
                 middle_name,
                 last_name,
@@ -132,7 +134,8 @@ final class User
                 is_active,
                 created_by,
                 updated_by,
-                last_login_at
+                last_login_at,
+                company_id
             ) VALUES (
                 :first_name,
                 :middle_name,
@@ -161,7 +164,8 @@ final class User
                 :is_active,
                 :created_by,
                 :updated_by,
-                :last_login_at
+                :last_login_at,
+                :company_id
             )
             RETURNING id
         ";
@@ -202,6 +206,7 @@ final class User
             ':created_by'       => $v($data, 'created_by'),
             ':updated_by'       => $v($data, 'updated_by'),
             ':last_login_at'    => $v($data, 'last_login_at'),
+            ':company_id'       => $v($data, 'company_id'),
         ]);
 
         // PostgreSQL RETURNING id kullanımı
@@ -213,7 +218,7 @@ final class User
     {
         // Yalın bir update: tüm alanları set ediyoruz; istemediğin alanları çıkarabilirsin.
         $sql = "
-            UPDATE users SET
+            UPDATE public.users SET
                 first_name       = :first_name,
                 middle_name      = :middle_name,
                 last_name        = :last_name,
@@ -241,7 +246,8 @@ final class User
                 is_active        = :is_active,
                 updated_at       = now(),
                 updated_by       = :updated_by,
-                last_login_at    = :last_login_at
+                last_login_at    = :last_login_at,
+                company_id       = :company_id
             WHERE id = :id AND deleted_at IS NULL
         ";
 
@@ -279,6 +285,7 @@ final class User
             ':is_active'        => $v($data, 'is_active', true),
             ':updated_by'       => $v($data, 'updated_by'),
             ':last_login_at'    => $v($data, 'last_login_at'),
+            ':company_id'       => $v($data, 'company_id'),
             ':id'               => $id,
         ]);
     }
@@ -286,11 +293,11 @@ final class User
     public static function delete(PDO $pdo, int $id): void
     {
         // Soft delete: geri döndürülebilir silme
-        $stmt = $pdo->prepare("UPDATE users SET deleted_at = now() WHERE id = :id AND deleted_at IS NULL");
+        $stmt = $pdo->prepare("UPDATE public.users SET deleted_at = now() WHERE id = :id AND deleted_at IS NULL");
         $stmt->execute([':id' => $id]);
 
         // Gerçek silme istersen:
-        // $stmt = $pdo->prepare("DELETE FROM users WHERE id = :id");
+        // $stmt = $pdo->prepare("DELETE FROM public.users WHERE id = :id");
         // $stmt->execute([':id' => $id]);
     }
 }

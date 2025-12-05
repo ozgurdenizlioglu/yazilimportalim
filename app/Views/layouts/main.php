@@ -1,4 +1,5 @@
 <?php
+//\myapp\app\Views\layouts\main.php
 use App\Core\Helpers;
 ?>
 <!doctype html>

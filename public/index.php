@@ -44,6 +44,7 @@ $router->post('/users/delete', [UserController::class, 'destroy']);
 // QR/Scan/Attendance
 $router->get('/scan', [ScanController::class, 'show']);
 $router->get('/attendance', [AttendanceController::class, 'index']);
+$router->get('/attendance/report', [AttendanceController::class, 'report']); // <-- BUNU EKLE
 $router->post('/api/attendance/scan', [AttendanceController::class, 'store']);
 
 // Geçici: token üretimi (sadece geliştirme)

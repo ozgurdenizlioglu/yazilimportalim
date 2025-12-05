@@ -37,7 +37,6 @@ $checked = function ($v) {
 $u = $user ?? [];
 
 $baseUrl = $_ENV['BASE_URL'] ?? getenv('BASE_URL') ?? (($_SERVER['REQUEST_SCHEME'] ?? 'http') . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost'));
-
 $baseUrl = rtrim($baseUrl, '/');
 
 ?>
@@ -68,8 +67,8 @@ $baseUrl = rtrim($baseUrl, '/');
       <select name="gender">
         <?php
           $gender = $u['gender'] ?? '';
-$opts = ['' => '— Seçiniz —', 'male' => 'Erkek', 'female' => 'Kadın', 'nonbinary' => 'Non-binary', 'unknown' => 'Bilinmiyor'];
-?>
+          $opts = ['' => '— Seçiniz —', 'male' => 'Erkek', 'female' => 'Kadın', 'nonbinary' => 'Non-binary', 'unknown' => 'Bilinmiyor'];
+        ?>
         <?php foreach ($opts as $val => $label): ?>
           <option value="<?= Helpers::e($val) ?>" <?= ($gender === $val) ? 'selected' : '' ?>><?= Helpers::e($label) ?></option>
         <?php endforeach; ?>
@@ -95,9 +94,9 @@ $opts = ['' => '— Seçiniz —', 'male' => 'Erkek', 'female' => 'Kadın', 'non
     <label>Medeni Hali
       <select name="marital_status">
         <?php
-  $ms = $u['marital_status'] ?? '';
-$msOpts = ['' => '— Seçiniz —', 'single' => 'Bekar', 'married' => 'Evli', 'divorced' => 'Boşanmış', 'widowed' => 'Dul', 'other' => 'Diğer'];
-?>
+          $ms = $u['marital_status'] ?? '';
+          $msOpts = ['' => '— Seçiniz —', 'single' => 'Bekar', 'married' => 'Evli', 'divorced' => 'Boşanmış', 'widowed' => 'Dul', 'other' => 'Diğer'];
+        ?>
         <?php foreach ($msOpts as $val => $label): ?>
           <option value="<?= Helpers::e($val) ?>" <?= ($ms === $val) ? 'selected' : '' ?>><?= Helpers::e($label) ?></option>
         <?php endforeach; ?>
@@ -174,79 +173,97 @@ $msOpts = ['' => '— Seçiniz —', 'single' => 'Bekar', 'married' => 'Evli', '
     </label>
   </fieldset>
 
+  <fieldset>
+    <legend>Firma</legend>
+    <label>Firma Seçimi
+      <select name="company_id">
+        <option value="">— Seçiniz —</option>
+        <?php
+          $currentCompanyId = (string)($u['company_id'] ?? '');
+          foreach (($companies ?? []) as $c):
+            $cid = (string)$c['id'];
+        ?>
+          <option value="<?= (int)$c['id'] ?>" <?= ($currentCompanyId !== '' && $currentCompanyId === $cid) ? 'selected' : '' ?>>
+            <?= Helpers::e($c['name']) ?>
+          </option>
+        <?php endforeach; ?>
+      </select>
+    </label>
+  </fieldset>
+
   <div class="actions" style="margin-top:1rem; display:flex; gap:.75rem;">
     <button type="submit">Güncelle</button>
     <a href="/users">İptal</a>
   </div>
 
   <div style="margin-top:1.5rem;">
-  <div style="font-weight:600; margin-bottom:.5rem;">Kullanıcı QR</div>
-  <div id="qrcode" style="width:220px;height:220px;border:1px dashed #ddd;display:grid;place-items:center;">
-    <span style="color:#888;font-size:12px;">QR yükleniyor...</span>
+    <div style="font-weight:600; margin-bottom:.5rem;">Kullanıcı QR</div>
+    <div id="qrcode" style="width:220px;height:220px;border:1px dashed #ddd;display:grid;place-items:center;">
+      <span style="color:#888;font-size:12px;">QR yükleniyor...</span>
+    </div>
+    <div style="margin-top:8px; font-size:13px; color:#666">
+      <span id="qr-url"></span>
+      <button id="btn-copy" type="button" style="margin-left:8px;">Kopyala</button>
+    </div>
+    <button id="btn-download" type="button" style="margin-top:10px;">PNG indir</button>
   </div>
-  <div style="margin-top:8px; font-size:13px; color:#666">
-    <span id="qr-url"></span>
-    <button id="btn-copy" type="button" style="margin-left:8px;">Kopyala</button>
-  </div>
-  <button id="btn-download" type="button" style="margin-top:10px;">PNG indir</button>
-</div>
 
-<script src="/js/qrcode.min.js"></script>
-<script>
-(function() {
-  const userId = <?= isset($user['id']) ? (int)$user['id'] : 0 ?>;
-  if (!userId) {
-    document.getElementById('qrcode').innerHTML = '<span style="color:#b00020;font-size:12px;">Önce kullanıcıyı kaydedin (ID yok).</span>';
-    return;
-  }
-  const url = "<?= $baseUrl ?>" + '/scan?uid=' + userId;
-
-  const urlEl = document.getElementById('qr-url');
-  urlEl.textContent = url;
-
-  const copyBtn = document.getElementById('btn-copy');
-  copyBtn.addEventListener('click', async () => {
-    try {
-      await navigator.clipboard.writeText(url);
-      copyBtn.textContent = 'Kopyalandı ✓';
-      setTimeout(() => copyBtn.textContent = 'Kopyala', 1500);
-    } catch {
-      copyBtn.textContent = 'Kopyalanamadı';
-      setTimeout(() => copyBtn.textContent = 'Kopyala', 1500);
+  <script src="/js/qrcode.min.js"></script>
+  <script>
+  (function() {
+    const userId = <?= isset($user['id']) ? (int)$user['id'] : 0 ?>;
+    if (!userId) {
+      document.getElementById('qrcode').innerHTML = '<span style="color:#b00020;font-size:12px;">Önce kullanıcıyı kaydedin (ID yok).</span>';
+      return;
     }
-  });
+    const url = "<?= $baseUrl ?>" + '/scan?uid=' + userId;
 
-  if (typeof QRCode === 'undefined') {
-    document.getElementById('qrcode').innerHTML = '<span style="color:#b00020;font-size:12px;">qrcode.min.js yüklü değil.</span>';
-    return;
-  }
+    const urlEl = document.getElementById('qr-url');
+    urlEl.textContent = url;
 
-  const qrel = document.getElementById('qrcode');
-  // Önceki içeriği temizle
-  qrel.innerHTML = '';
-  const qr = new QRCode(qrel, {
-    text: url,
-    width: 220,
-    height: 220,
-    correctLevel: QRCode.CorrectLevel.M
-  });
+    const copyBtn = document.getElementById('btn-copy');
+    copyBtn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(url);
+        copyBtn.textContent = 'Kopyalandı ✓';
+        setTimeout(() => copyBtn.textContent = 'Kopyala', 1500);
+      } catch {
+        copyBtn.textContent = 'Kopyalanamadı';
+        setTimeout(() => copyBtn.textContent = 'Kopyala', 1500);
+      }
+    });
 
-  document.getElementById('btn-download').addEventListener('click', () => {
-    const img = qrel.querySelector('img') || qrel.querySelector('canvas');
-    if (!img) return;
-    let dataUrl;
-    if (img.tagName.toLowerCase() === 'img') {
-      dataUrl = img.src;
-    } else {
-      dataUrl = img.toDataURL('image/png');
+    if (typeof QRCode === 'undefined') {
+      document.getElementById('qrcode').innerHTML = '<span style="color:#b00020;font-size:12px;">qrcode.min.js yüklü değil.</span>';
+      return;
     }
-    const a = document.createElement('a');
-    a.href = dataUrl;
-    a.download = 'user-' + userId + '-qr.png';
-    a.click();
-  });
-})();
-</script>
+
+    const qrel = document.getElementById('qrcode');
+    // Önceki içeriği temizle
+    qrel.innerHTML = '';
+    const qr = new QRCode(qrel, {
+      text: url,
+      width: 220,
+      height: 220,
+      correctLevel: QRCode.CorrectLevel.M
+    });
+
+    document.getElementById('btn-download').addEventListener('click', () => {
+      const img = qrel.querySelector('img') || qrel.querySelector('canvas');
+      if (!img) return;
+      let dataUrl;
+      if (img.tagName.toLowerCase() === 'img') {
+        dataUrl = img.src;
+      } else {
+        dataUrl = img.toDataURL('image/png');
+      }
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      a.download = 'user-' + userId + '-qr.png';
+      a.click();
+    });
+  })();
+  </script>
 </form>
 
 <style>

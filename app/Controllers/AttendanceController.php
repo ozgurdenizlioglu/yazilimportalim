@@ -1,5 +1,4 @@
 <?php
-
 declare(strict_types=1);
 
 namespace App\Controllers;
@@ -7,6 +6,7 @@ namespace App\Controllers;
 use App\Core\Controller;
 use App\Core\Database;
 use App\Core\TokenService;
+use App\Models\Attendance as AttendanceModel; // rapor için model
 use PDO;
 use Exception;
 
@@ -17,11 +17,52 @@ final class AttendanceController extends Controller
 
     public function __construct()
     {
+        // Not: Sizin Database::pdo() kullanıyordu, onu koruyoruz.
         $this->db = Database::pdo();
         $this->tokens = new TokenService($this->db);
     }
 
-    // POST /api/attendance/scan
+    // WEB: Rapor listesi (GET /attendance/report)
+    public function report()
+    {
+        $model = new AttendanceModel();
+
+        $filters = [
+            'from'       => $_GET['from'] ?? null,
+            'to'         => $_GET['to'] ?? null,
+            'type'       => $_GET['type'] ?? null,
+            'company_id' => $_GET['company_id'] ?? null,
+            'name'       => $_GET['name'] ?? null,
+            'device'     => $_GET['device'] ?? null,
+        ];
+
+        $page   = max(1, (int)($_GET['page'] ?? 1));
+        $limit  = max(1, min(500, (int)($_GET['limit'] ?? 200)));
+        $offset = ($page - 1) * $limit;
+
+        $result    = $model->search($filters, $limit, $offset);
+        $companies = $model->listCompanies();
+
+        return $this->view('attendance/attendancereport', [
+            'title'     => 'Giriş/Çıkış Raporu',
+            'rows'      => $result['rows'],
+            'total'     => $result['total'],
+            'page'      => $page,
+            'limit'     => $limit,
+            'filters'   => $filters,
+            'companies' => $companies
+        ]);
+    }
+
+    // (Opsiyonel) WEB: Basit index sayfası
+    public function index()
+    {
+        return $this->view('attendance/index', [
+            'title' => 'Attendance'
+        ]);
+    }
+
+    // API: POST /api/attendance/scan
     public function store(): void
     {
         header('Content-Type: application/json; charset=utf-8');
@@ -41,9 +82,7 @@ final class AttendanceController extends Controller
 
         try {
             if ($token) {
-                // Token doğrula (daha sıkı pencere, örn. 120 saniye)
-                $payload = $this->tokens->verifyToken($token, 120); // ['uid','ts','nonce']
-                // Replay engelle
+                $payload = $this->tokens->verifyToken($token, 120);
                 $this->tokens->consumeNonce($payload['uid'], $payload['nonce']);
                 $uid = $payload['uid'];
             } elseif ($uid && ctype_digit((string)$uid)) {
@@ -52,24 +91,20 @@ final class AttendanceController extends Controller
                 throw new Exception('token veya uid gerekli');
             }
 
-            // Kullanıcı var mı?
             $user = $this->getUser($uid);
             if (!$user) {
                 throw new Exception('User not found');
             }
 
-            // type yoksa otomatik belirle (son kayda göre toggle)
             if ($type === null || $type === '') {
-                $type = $this->nextTypeForUser($uid); // 'in' veya 'out'
+                $type = $this->nextTypeForUser($uid);
             } else {
-                // Güvenlik: beklenmeyen değer gelirse normalize et
                 $type = strtolower((string)$type);
                 if ($type !== 'in' && $type !== 'out') {
                     throw new Exception('Invalid type');
                 }
             }
 
-            // Katılım kaydı (PostgreSQL: RETURNING id)
             $attendanceId = $this->createAttendance($uid, $type);
 
             echo json_encode([
@@ -124,7 +159,6 @@ final class AttendanceController extends Controller
 
     private function createAttendance(int $uid, string $type): int
     {
-        // DİKKAT: tablo adı senin ortamında 'attendance'
         $stmt = $this->db->prepare('INSERT INTO attendance (user_id, type) VALUES (:u, :t) RETURNING id');
         $stmt->execute([':u' => $uid, ':t' => $type]);
         return (int)$stmt->fetchColumn();
