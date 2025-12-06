@@ -1,817 +1,363 @@
-<?php use App\Core\Helpers; ?>
+<?php
+use App\Core\Helpers;
 
-<h1><?= Helpers::e(isset($title) ? $title : 'Giriş/Çıkış Raporu') ?></h1>
+ob_start();
+?>
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h1 class="h4 m-0"><?= Helpers::e($title ?? 'Giriş/Çıkış Raporu') ?></h1>
+    <?php if (!empty($subtitle ?? null)): ?>
+      <div class="text-muted small"><?= Helpers::e($subtitle) ?></div>
+    <?php endif; ?>
+  </div>
+</div>
 
-<form method="get" action="/attendance/report" style="margin:.5rem 0 1rem; display:flex; gap:.5rem; flex-wrap:wrap; align-items:center;">
-
-<input type="hidden" name="page" value="1">
-
-<label style="display:flex; flex-direction:column; font-size:.9rem;">
-
-From
-
-<input type="date" name="from" value="<?= Helpers::e(isset($filters['from']) ? $filters['from'] : '') ?>">
-
-</label>
-
-<label style="display:flex; flex-direction:column; font-size:.9rem;">
-
-To
-
-<input type="date" name="to" value="<?= Helpers::e(isset($filters['to']) ? $filters['to'] : '') ?>">
-
-</label>
-
-<label style="display:flex; flex-direction:column; font-size:.9rem;">
-
-Tür
-
-<select name="type">
-
-<option value="">— Tümü —</option>
-
-<option value="in" <?= ((isset($filters['type']) ? $filters['type'] : '')==='in')?'selected':''; ?>>in</option>
-
-<option value="out" <?= ((isset($filters['type']) ? $filters['type'] : '')==='out')?'selected':''; ?>>out</option>
-
-</select>
-
-</label>
-
-<label style="display:flex; flex-direction:column; font-size:.9rem; min-width:220px;">
-
-Firma
-
-<select name="company_id">
-
-<option value="">— Tümü —</option>
-
-<?php foreach ((isset($companies) ? $companies : []) as $c): ?>
-
-<option value="<?= (int)$c['id'] ?>" <?= ((string)(isset($filters['company_id']) ? $filters['company_id'] : '') === (string)$c['id']) ? 'selected' : '' ?>>
-
-<?= Helpers::e($c['name']) ?>
-
-</option>
-
-<?php endforeach; ?>
-
-</select>
-
-</label>
-
-<label style="display:flex; flex-direction:column; font-size:.9rem;">
-
-Ad/Soyad
-
-<input type="text" name="name" value="<?= Helpers::e(isset($filters['name']) ? $filters['name'] : '') ?>" placeholder="Ad veya soyad">
-
-</label>
-
-<label style="display:flex; flex-direction:column; font-size:.9rem;">
-
-Cihaz
-
-<input type="text" name="device" value="<?= Helpers::e(isset($filters['device']) ? $filters['device'] : '') ?>" placeholder="Cihaz adı">
-
-</label>
-
-<button class="btn" type="submit">Filtrele</button>
-
-<button class="btn" type="button" id="toggleColumnPanel">Kolonları Yönet</button>
-
-<button class="btn" type="button" id="resetView">Görünümü Sıfırla</button>
-
-<span class="spacer"></span>
-
-<button class="btn" type="button" id="exportExcel">Excele Aktar</button>
-
-</form>
+<div class="card shadow-sm mb-3">
+  <div class="card-body">
+    <form method="get" action="/attendance/report" class="row gy-2 gx-2 align-items-end">
+      <input type="hidden" name="page" value="1">
+      <div class="col-6 col-md-2">
+        <label class="form-label">From</label>
+        <input type="date" name="from" class="form-control" value="<?= Helpers::e($filters['from'] ?? '') ?>">
+      </div>
+      <div class="col-6 col-md-2">
+        <label class="form-label">To</label>
+        <input type="date" name="to" class="form-control" value="<?= Helpers::e($filters['to'] ?? '') ?>">
+      </div>
+      <div class="col-6 col-md-2">
+        <label class="form-label">Tür</label>
+        <select name="type" class="form-select">
+          <option value="">— Tümü —</option>
+          <option value="in"  <?= (($filters['type'] ?? '')==='in') ? 'selected':''; ?>>in</option>
+          <option value="out" <?= (($filters['type'] ?? '')==='out') ? 'selected':''; ?>>out</option>
+        </select>
+      </div>
+      <div class="col-12 col-md-3">
+        <label class="form-label">Firma</label>
+        <select name="company_id" class="form-select">
+          <option value="">— Tümü —</option>
+          <?php foreach (($companies ?? []) as $c): ?>
+            <option value="<?= (int)$c['id'] ?>" <?= ((string)($filters['company_id'] ?? '') === (string)$c['id']) ? 'selected' : '' ?>>
+              <?= Helpers::e($c['name']) ?>
+            </option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+      <div class="col-12 col-md-3">
+        <label class="form-label">Ad/Soyad</label>
+        <input type="text" name="name" class="form-control" value="<?= Helpers::e($filters['name'] ?? '') ?>" placeholder="Ad veya soyad">
+      </div>
+      <div class="col-12 col-md-3">
+        <label class="form-label">Cihaz</label>
+        <input type="text" name="device" class="form-control" value="<?= Helpers::e($filters['device'] ?? '') ?>" placeholder="Cihaz adı">
+      </div>
+      <div class="col-12 col-md-4 d-flex gap-2 mt-2">
+        <button class="btn btn-primary" type="submit"><i class="bi bi-search me-1"></i>Filtrele</button>
+        <button class="btn btn-outline-secondary" type="button" id="toggleColumnPanel"><i class="bi bi-columns-gap me-1"></i>Kolonları Yönet</button>
+        <button class="btn btn-outline-secondary" type="button" id="resetView"><i class="bi bi-arrow-counterclockwise me-1"></i>Görünümü Sıfırla</button>
+        <div class="ms-auto"></div>
+        <button class="btn btn-success" type="button" id="exportExcel"><i class="bi bi-file-earmark-spreadsheet me-1"></i>Excele Aktar</button>
+      </div>
+    </form>
+  </div>
+</div>
 
 <?php
-
-$rowsJson = json_encode(isset($rows) ? $rows : [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-
+$rowsJson = json_encode($rows ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 ?>
 
 <?php if (!empty($rows)): ?>
+  <div class="card shadow-sm">
+    <div class="card-body p-0">
+      <div class="table-wrap p-2 pt-0">
+        <div id="columnPanel" class="column-panel" hidden>
+          <strong>Görünen Kolonlar</strong>
+          <div id="columnCheckboxes" class="columns"></div>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0" id="attTable">
+            <thead>
+              <tr id="headerRow"></tr>
+              <tr id="filtersRow"></tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <?php
+      $total = (int)($total ?? 0);
+      $page  = (int)($page  ?? 1);
+      $limit = (int)($limit ?? 200);
+      $pages = max(1, (int)ceil($total / max(1, $limit)));
+      $buildUrl = function($p){
+        $qs = $_GET;
+        $qs['page'] = $p;
+        return '/attendance/report?' . http_build_query($qs);
+      };
+    ?>
+    <div class="card-footer d-flex flex-wrap gap-2 align-items-center">
+      <div class="text-muted small">Toplam: <strong><?= $total ?></strong> | Sayfa: <?= $page ?>/<?= $pages ?></div>
+      <div class="ms-auto"></div>
+      <nav>
+        <ul class="pagination mb-0">
+          <li class="page-item <?= $page<=1?'disabled':'' ?>">
+            <a class="page-link" href="<?= Helpers::e($buildUrl(1)) ?>">« İlk</a>
+          </li>
+          <li class="page-item <?= $page<=1?'disabled':'' ?>">
+            <a class="page-link" href="<?= Helpers::e($buildUrl(max(1,$page-1))) ?>">‹ Önceki</a>
+          </li>
+          <li class="page-item disabled"><span class="page-link"><?= $page ?> / <?= $pages ?></span></li>
+          <li class="page-item <?= $page>=$pages?'disabled':'' ?>">
+            <a class="page-link" href="<?= Helpers::e($buildUrl(min($pages,$page+1))) ?>">Sonraki ›</a>
+          </li>
+          <li class="page-item <?= $page>=$pages?'disabled':'' ?>">
+            <a class="page-link" href="<?= Helpers::e($buildUrl($pages)) ?>">Son »</a>
+          </li>
+        </ul>
+      </nav>
+    </div>
+  </div>
 
-<div class="table-wrap">
+  <?php ob_start(); ?>
+  <script>
+  (function(){
+    const DATA = <?= $rowsJson ?: '[]' ?>;
 
-<div id="columnPanel" class="column-panel" hidden>
+    // Kolon tanımları
+    const columns = [
+      { id:'id', label:'ID', filterType:'text', className:'text-end' },
+      { id:'scanned_at', label:'Zaman', filterType:'date' },
+      { id:'type', label:'Tür', filterType:'text' },
+      { id:'first_name', label:'Ad', filterType:'text' },
+      { id:'last_name', label:'Soyad', filterType:'text' },
+      { id:'company_name', label:'Firma', filterType:'text' },
+      { id:'source_device', label:'Cihaz', filterType:'text' },
+      { id:'notes', label:'Notlar', filterType:'text' },
+      { id:'user_id', label:'User ID', filterType:'text', className:'text-end' },
+    ];
 
-<strong>Görünen Kolonlar</strong>
+    const defaultVisible = ['id','scanned_at','type','first_name','last_name','company_name','source_device','notes'];
 
-<div id="columnCheckboxes" class="columns"></div>
+    const LS_KEYS = { visibleCols:'att.visibleCols', filters:'att.filters', sort:'att.sort' };
+    let state = { visibleCols: loadVisibleCols(), filters: loadFilters(), sort: loadSort() };
 
-</div>
+    const headerRow = document.getElementById('headerRow');
+    const filtersRow = document.getElementById('filtersRow');
+    const tbody = document.getElementById('tableBody');
+    const columnPanel = document.getElementById('columnPanel');
+    const columnCheckboxes = document.getElementById('columnCheckboxes');
 
-<table class="table" id="attTable">
+    document.getElementById('toggleColumnPanel').addEventListener('click', ()=> columnPanel.hidden = !columnPanel.hidden);
+    document.getElementById('resetView').addEventListener('click', ()=>{
+      state.visibleCols = [...defaultVisible];
+      state.filters = {};
+      state.sort = { by:'scanned_at', dir:'desc' };
+      saveAll(); buildColumnPanel(); buildHead(); render();
+    });
+    document.getElementById('exportExcel').addEventListener('click', exportAllToCsv);
 
-<thead>
+    buildColumnPanel(); buildHead(); render();
 
-<tr id="headerRow"></tr>
+    function loadVisibleCols(){
+      try {
+        const raw = localStorage.getItem(LS_KEYS.visibleCols);
+        const arr = raw ? JSON.parse(raw) : null;
+        let cols = (arr && Array.isArray(arr)) ? arr : [...defaultVisible];
+        cols = cols.filter(id => columns.find(c=>c.id===id));
+        return cols;
+      } catch { return [...defaultVisible]; }
+    }
+    function loadFilters(){ try { return JSON.parse(localStorage.getItem(LS_KEYS.filters) || '{}'); } catch { return {}; } }
+    function loadSort(){
+      try {
+        const s = JSON.parse(localStorage.getItem(LS_KEYS.sort) || '{"by":"scanned_at","dir":"desc"}');
+        return columns.find(c=>c.id===s.by) ? s : { by:'scanned_at', dir:'desc' };
+      } catch { return { by:'scanned_at', dir:'desc' }; }
+    }
+    function saveAll(){
+      localStorage.setItem(LS_KEYS.visibleCols, JSON.stringify(state.visibleCols));
+      localStorage.setItem(LS_KEYS.filters, JSON.stringify(state.filters));
+      localStorage.setItem(LS_KEYS.sort, JSON.stringify(state.sort));
+    }
+    function visibleColumns(){ return state.visibleCols.map(id => columns.find(c=>c.id===id)).filter(Boolean); }
 
-<tr id="filtersRow"></tr>
+    function buildColumnPanel(){
+      columnCheckboxes.innerHTML = '';
+      columns.forEach(col=>{
+        const id = 'colchk_'+col.id;
+        const wrap = document.createElement('label');
+        wrap.className = 'colchk';
+        wrap.innerHTML = `<input type="checkbox" id="${id}" ${state.visibleCols.includes(col.id)?'checked':''}> <span>${col.label}</span>`;
+        wrap.querySelector('input').addEventListener('change', (e)=>{
+          if (e.target.checked) { if (!state.visibleCols.includes(col.id)) state.visibleCols.push(col.id); }
+          else { state.visibleCols = state.visibleCols.filter(x=>x!==col.id); }
+          saveAll(); buildHead(); render();
+        });
+        columnCheckboxes.appendChild(wrap);
+      });
+    }
 
-</thead>
+    function buildHead(){
+      headerRow.innerHTML = ''; filtersRow.innerHTML = '';
+      const cols = visibleColumns();
+      cols.forEach(col=>{
+        // Header hücresi
+        const th = document.createElement('th');
+        th.textContent = col.label;
+        if (col.className) th.classList.add(...col.className.split(' '));
+        th.classList.add('sortable');
+        th.addEventListener('click', ()=>toggleSort(col.id));
+        if (state.sort.by === col.id) th.setAttribute('data-sort', state.sort.dir);
+        headerRow.appendChild(th);
 
-<tbody id="tableBody"></tbody>
+        // Filtre hücresi
+        const tf = document.createElement('th');
+        tf.className = 'filter-cell';
+        if (col.filterType === 'date') {
+          const fromVal = state.filters[col.id]?.from || '';
+          const toVal   = state.filters[col.id]?.to   || '';
+          tf.innerHTML = `
+            <div class="d-grid" style="grid-template-columns:1fr 1fr; gap:.25rem;">
+              <input type="date" class="form-control form-control-sm" data-key="${col.id}" data-kind="from" value="${escapeAttr(fromVal)}">
+              <input type="date" class="form-control form-control-sm" data-key="${col.id}" data-kind="to" value="${escapeAttr(toVal)}">
+            </div>
+          `;
+        } else {
+          const cur = state.filters[col.id]?.val || '';
+          tf.innerHTML = `<input type="text" class="form-control form-control-sm" placeholder="Ara..." data-key="${col.id}" data-kind="text" value="${escapeAttr(cur)}">`;
+        }
+        filtersRow.appendChild(tf);
+      });
 
-</table>
+      // Dinleyiciler
+      filtersRow.querySelectorAll('input[data-kind="text"]').forEach(inp=>{
+        inp.addEventListener('input', debounce(()=>{
+          const key = inp.dataset.key;
+          state.filters[key] = { val: inp.value };
+          saveAll(); render();
+        }, 200));
+      });
+      filtersRow.querySelectorAll('input[data-kind="from"], input[data-kind="to"]').forEach(inp=>{
+        inp.addEventListener('change', ()=>{
+          const key = inp.dataset.key, kind = inp.dataset.kind;
+          state.filters[key] = state.filters[key] || {};
+          state.filters[key][kind] = inp.value;
+          saveAll(); render();
+        });
+      });
+    }
+
+    function toggleSort(colId){
+      if (state.sort.by === colId) state.sort.dir = state.sort.dir === 'asc' ? 'desc' : 'asc';
+      else { state.sort.by = colId; state.sort.dir = 'asc'; }
+      saveAll(); buildHead(); render();
+    }
+
+    function applyFilters(rows){
+      return rows.filter(r=>{
+        for (const col of columns){
+          const f = state.filters[col.id];
+          if (!f) continue;
+          if (col.filterType === 'text'){
+            const needle = (f.val || '').trim().toLowerCase();
+            if (needle) {
+              const hay = String(r[col.id] ?? '').toLowerCase();
+              if (!hay.includes(needle)) return false;
+            }
+          } else if (col.filterType === 'date'){
+            const from = f.from ? Date.parse(f.from) : null;
+            const to   = f.to   ? Date.parse(f.to)   : null;
+            const v    = Date.parse(r[col.id] ?? '');
+            if (Number.isNaN(v)) return false;
+            if (from && !(v >= from)) return false;
+            if (to && !(v <= to)) return false;
+          }
+        }
+        return true;
+      });
+    }
+
+    function applySort(rows){
+      const by = state.sort.by;
+      const dir = state.sort.dir === 'asc' ? 1 : -1;
+      return [...rows].sort((a,b)=>{
+        const av = a[by];
+        const bv = b[by];
+        // Tarih ve sayı için basit kıyaslama
+        if (by === 'id' || by === 'user_id') {
+          const ai = Number(av ?? 0), bi = Number(bv ?? 0);
+          return (ai < bi ? -1 : ai > bi ? 1 : 0) * dir;
+        }
+        if (by === 'scanned_at') {
+          const at = Date.parse(av ?? '') || 0;
+          const bt = Date.parse(bv ?? '') || 0;
+          return (at < bt ? -1 : at > bt ? 1 : 0) * dir;
+        }
+        const as = String(av ?? '');
+        const bs = String(bv ?? '');
+        return (as < bs ? -1 : as > bs ? 1 : 0) * dir;
+      });
+    }
+
+    function render(){
+      const cols = visibleColumns();
+      const sorted = applySort(applyFilters(DATA));
+      tbody.innerHTML = '';
+      for (const r of sorted){
+        const tr = document.createElement('tr');
+        for (const col of cols){
+          const td = document.createElement('td');
+          if (col.className) td.className = col.className;
+          if (col.id === 'scanned_at') {
+            td.textContent = r.scanned_at ? new Date(r.scanned_at).toLocaleString() : '';
+          } else if (col.id === 'type') {
+            td.innerHTML = r.type === 'in'
+              ? '<span class="badge ok">in</span>'
+              : '<span class="badge no">out</span>';
+          } else {
+            td.textContent = r[col.id] == null ? '' : String(r[col.id]);
+          }
+          tr.appendChild(td);
+        }
+        tbody.appendChild(tr);
+      }
+
+      // Sıralama göstergesini güncelle
+      headerRow.querySelectorAll('th.sortable').forEach(th => th.removeAttribute('data-sort'));
+      const idx = visibleColumns().findIndex(c => c.id === state.sort.by);
+      if (idx >= 0) headerRow.children[idx]?.setAttribute('data-sort', state.sort.dir);
+    }
+
+    function exportAllToCsv(){
+      const cols = columns.map(c=>c.id);
+      const headers = columns.map(c=>c.label);
+      const rows = DATA.map(row => cols.map(id => {
+        if (id === 'scanned_at' && row[id]) return new Date(row[id]).toISOString();
+        return row[id] ?? '';
+      }));
+      const csv = toCsv([headers, ...rows]);
+      const blob = new Blob(['\uFEFF' + csv], { type:'text/csv;charset=utf-8;' });
+      triggerDownload(blob, 'attendance_report.csv');
+    }
+
+    // Yardımcılar
+    function toCsv(rows){ return rows.map(r => r.map(csvEscape).join(',')).join('\r\n'); }
+    function csvEscape(v){ const s=String(v??''); return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s; }
+    function triggerDownload(blob, filename){ const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=filename; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000); }
+
+    function escapeHtml(str){ return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+    function escapeAttr(str){ return escapeHtml(String(str)).replace(/\n/g,' '); }
+    function debounce(fn, wait){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a), wait); }; }
+  })();
+  </script>
+  <?php $pageScripts = ob_get_clean(); ?>
+<?php else: ?>
+  <div class="alert alert-light border d-flex align-items-center" role="alert">
+    <i class="bi bi-inboxes me-2"></i> Hiç kayıt bulunamadı.
+  </div>
+<?php endif; ?>
 
 <?php
-
-$total = (int)(isset($total) ? $total : 0);
-
-$page = (int)(isset($page) ? $page : 1);
-
-$limit = (int)(isset($limit) ? $limit : 200);
-
-$pages = max(1, (int)ceil($total / max(1,$limit)));
-
-$qs = $_GET; unset($qs['page']);
-
-function buildUrl($p) { $qs = $_GET; $qs['page'] = $p; return '/attendance/report?' . http_build_query($qs); }
-
-?>
-
-<div style="margin-top:.75rem; display:flex; gap:.5rem; align-items:center; flex-wrap:wrap;">
-
-<div>Toplam: <strong><?= $total ?></strong> | Sayfa: <?= $page ?>/<?= $pages ?></div>
-
-<div class="spacer"></div>
-
-<div class="pagination">
-
-<?php if ($page > 1): ?>
-
-<a class="btn" href="<?= Helpers::e(buildUrl(1)) ?>">« İlk</a>
-
-<a class="btn" href="<?= Helpers::e(buildUrl($page-1)) ?>">‹ Önceki</a>
-
-<?php endif; ?>
-
-<?php if ($page < $pages): ?>
-
-<a class="btn" href="<?= Helpers::e(buildUrl($page+1)) ?>">Sonraki ›</a>
-
-<a class="btn" href="<?= Helpers::e(buildUrl($pages)) ?>">Son »</a>
-
-<?php endif; ?>
-
-</div>
-
-</div>
-
-</div>
-
-<script>
-
-(function(){
-
-var DATA = <?php echo $rowsJson ? $rowsJson : '[]'; ?>;
-
-var columns = [
-
-{ id:'id', label:'ID', filterType:'text', className:'col-id' },
-
-{ id:'scanned_at', label:'Zaman', filterType:'date' },
-
-{ id:'type', label:'Tür', filterType:'text', className:'col-type' },
-
-{ id:'first_name', label:'Ad', filterType:'text' },
-
-{ id:'last_name', label:'Soyad', filterType:'text' },
-
-{ id:'company_name', label:'Firma', filterType:'text' },
-
-{ id:'source_device', label:'Cihaz', filterType:'text' },
-
-{ id:'notes', label:'Notlar', filterType:'text' },
-
-{ id:'user_id', label:'User ID', filterType:'text', className:'col-id' }
-
-];
-
-var defaultVisible = ['id','scanned_at','type','first_name','last_name','company_name','source_device','notes'];
-
-var LS_KEYS = { visibleCols:'att.visibleCols', filters:'att.filters', sort:'att.sort' };
-
-var state = {
-
-visibleCols: loadVisibleCols(),
-
-filters: loadFilters(),
-
-sort: loadSort()
-
-};
-
-var headerRow = document.getElementById('headerRow');
-
-var filtersRow = document.getElementById('filtersRow');
-
-var tbody = document.getElementById('tableBody');
-
-var columnPanel = document.getElementById('columnPanel');
-
-var columnCheckboxes = document.getElementById('columnCheckboxes');
-
-document.getElementById('toggleColumnPanel').addEventListener('click', function(){ columnPanel.hidden = !columnPanel.hidden; });
-
-document.getElementById('resetView').addEventListener('click', function(){
-
-state.visibleCols = defaultVisible.slice();
-
-state.filters = {};
-
-state.sort = { by:'scanned_at', dir:'desc' };
-
-saveAll(); buildColumnPanel(); buildHead(); render();
-
-});
-
-document.getElementById('exportExcel').addEventListener('click', exportAllToCsv);
-
-buildColumnPanel();
-
-buildHead();
-
-render();
-
-function loadVisibleCols() {
-
-try {
-
-var raw = localStorage.getItem(LS_KEYS.visibleCols);
-
-var arr = raw ? JSON.parse(raw) : null;
-
-var cols = (arr && Object.prototype.toString.call(arr) === '[object Array]') ? arr : defaultVisible.slice();
-
-cols = cols.filter(function(id){
-
-for (var i=0;i<columns.length;i++){ if (columns[i].id === id) return true; }
-
-return false;
-
-});
-
-return cols;
-
-} catch (e) { return defaultVisible.slice(); }
-
-}
-
-function loadFilters() { try { var v = localStorage.getItem(LS_KEYS.filters) || '{}'; return JSON.parse(v); } catch (e) { return {}; } }
-
-function loadSort() {
-
-try {
-
-var s = JSON.parse(localStorage.getItem(LS_KEYS.sort) || '{"by":"scanned_at","dir":"desc"}');
-
-var exists = false;
-
-for (var i=0;i<columns.length;i++){ if (columns[i].id === s.by) { exists=true; break; } }
-
-return exists ? s : { by:'scanned_at', dir:'desc' };
-
-} catch (e) { return { by:'scanned_at', dir:'desc' }; }
-
-}
-
-function saveAll() {
-
-localStorage.setItem(LS_KEYS.visibleCols, JSON.stringify(state.visibleCols));
-
-localStorage.setItem(LS_KEYS.filters, JSON.stringify(state.filters));
-
-localStorage.setItem(LS_KEYS.sort, JSON.stringify(state.sort));
-
-}
-
-function visibleColumns() {
-
-var list = [];
-
-for (var i=0;i<state.visibleCols.length;i++){
-
-var id = state.visibleCols[i];
-
-for (var j=0;j<columns.length;j++){
-
-if (columns[j].id === id) { list.push(columns[j]); break; }
-
-}
-
-}
-
-return list;
-
-}
-
-function buildColumnPanel() {
-
-columnCheckboxes.innerHTML = '';
-
-for (var i=0;i<columns.length;i++){
-
-var col = columns[i];
-
-var id = 'colchk_' + col.id;
-
-var wrap = document.createElement('label');
-
-wrap.className = 'colchk';
-
-wrap.innerHTML =
-
-'<input type="checkbox" id="'+id+'" '+(state.visibleCols.indexOf(col.id) !== -1 ? 'checked' : '')+'>' +
-
-'<span>'+col.label+'</span>';
-
-wrap.querySelector('input').addEventListener('change', (function(colId){
-
-return function(e){
-
-var on = e.target.checked;
-
-if (on) {
-
-if (state.visibleCols.indexOf(colId) === -1) state.visibleCols.push(colId);
-
-} else {
-
-var tmp = [];
-
-for (var k=0;k<state.visibleCols.length;k++){
-
-if (state.visibleCols[k] !== colId) tmp.push(state.visibleCols[k]);
-
-}
-
-state.visibleCols = tmp;
-
-}
-
-saveAll(); buildHead(); render();
-
-};
-
-})(col.id));
-
-columnCheckboxes.appendChild(wrap);
-
-}
-
-}
-
-function buildHead() {
-
-headerRow.innerHTML = '';
-
-filtersRow.innerHTML = '';
-
-var cols = visibleColumns();
-
-for (var i=0;i<cols.length;i++){
-
-var col = cols[i];
-
-var th = document.createElement('th');
-
-th.textContent = col.label;
-
-th.className = col.className || '';
-
-th.classList.add('sortable');
-
-(function(colId){
-
-th.addEventListener('click', function(){ toggleSort(colId); });
-
-})(col.id);
-
-if (state.sort.by === col.id) th.setAttribute('data-sort', state.sort.dir);
-
-headerRow.appendChild(th);
-
-var tf = document.createElement('th');
-
-tf.className = 'filter-cell ' + (col.className || '');
-
-if (col.filterType === 'date') {
-
-var fromVal = (state.filters[col.id] && state.filters[col.id].from) ? state.filters[col.id].from : '';
-
-var toVal = (state.filters[col.id] && state.filters[col.id].to) ? state.filters[col.id].to : '';
-
-tf.innerHTML =
-
-'<div class="filter-date">' +
-
-'<input type="date" data-key="'+col.id+'" data-kind="from" value="'+escapeAttr(fromVal)+'">' +
-
-'<input type="date" data-key="'+col.id+'" data-kind="to" value="'+escapeAttr(toVal)+'">' +
-
-'</div>';
-
-} else {
-
-var cur = (state.filters[col.id] && state.filters[col.id].val) ? state.filters[col.id].val : '';
-
-tf.innerHTML = '<input type="text" placeholder="Ara..." data-key="'+col.id+'" data-kind="text" value="'+escapeAttr(cur)+'">';
-
-}
-
-filtersRow.appendChild(tf);
-
-}
-
-var textInputs = filtersRow.querySelectorAll('input[data-kind="text"]');
-
-for (var a=0; a<textInputs.length; a++){
-
-(function(inp){
-
-inp.addEventListener('input', debounce(function(){
-
-var key = inp.getAttribute('data-key');
-
-state.filters[key] = { val: inp.value };
-
-saveAll(); render();
-
-}, 200));
-
-})(textInputs[a]);
-
-}
-
-var dateInputs = filtersRow.querySelectorAll('input[data-kind="from"], input[data-kind="to"]');
-
-for (var b=0; b<dateInputs.length; b++){
-
-(function(inp){
-
-inp.addEventListener('change', function(){
-
-var key = inp.getAttribute('data-key');
-
-var kind = inp.getAttribute('data-kind');
-
-state.filters[key] = state.filters[key] || {};
-
-state.filters[key][kind] = inp.value;
-
-saveAll(); render();
-
-});
-
-})(dateInputs[b]);
-
-}
-
-}
-
-function toggleSort(colId) {
-
-if (state.sort.by === colId) {
-
-state.sort.dir = state.sort.dir === 'asc' ? 'desc' : 'asc';
-
-} else {
-
-state.sort.by = colId;
-
-state.sort.dir = 'asc';
-
-}
-
-saveAll(); buildHead(); render();
-
-}
-
-function applyFilters(rows) {
-
-var out = [];
-
-rowLoop:
-
-for (var i=0;i<rows.length;i++){
-
-var r = rows[i];
-
-for (var j=0;j<columns.length;j++){
-
-var col = columns[j];
-
-var f = state.filters[col.id];
-
-if (!f) continue;
-
-if (col.filterType === 'text') {
-
-var needle = (f.val ? String(f.val) : '').trim().toLowerCase();
-
-if (needle) {
-
-var hay = String(r[col.id] != null ? r[col.id] : '').toLowerCase();
-
-if (hay.indexOf(needle) === -1) continue rowLoop;
-
-}
-
-} else if (col.filterType === 'date') {
-
-var from = f.from ? Date.parse(f.from) : null;
-
-var to = f.to ? Date.parse(f.to) : null;
-
-var v = Date.parse(r[col.id] != null ? r[col.id] : '');
-
-if (from && !(v >= from)) continue rowLoop;
-
-if (to && !(v <= to)) continue rowLoop;
-
-}
-
-}
-
-out.push(r);
-
-}
-
-return out;
-
-}
-
-function applySort(rows) {
-
-var by = state.sort.by;
-
-var dir = state.sort.dir === 'asc' ? 1 : -1;
-
-return rows.slice().sort(function(a,b){
-
-var av = String(a[by] != null ? a[by] : '');
-
-var bv = String(b[by] != null ? b[by] : '');
-
-if (av < bv) return -1 * dir;
-
-if (av > bv) return 1 * dir;
-
-return 0;
-
-});
-
-}
-
-function render() {
-
-var cols = visibleColumns();
-
-var filtered = applyFilters(DATA);
-
-var sorted = applySort(filtered);
-
-tbody.innerHTML = '';
-
-for (var i=0;i<sorted.length;i++){
-
-var r = sorted[i];
-
-var tr = document.createElement('tr');
-
-for (var j=0;j<cols.length;j++){
-
-var col = cols[j];
-
-var td = document.createElement('td');
-
-td.className = col.className || '';
-
-if (col.id === 'scanned_at') {
-
-td.textContent = r.scanned_at ? new Date(r.scanned_at).toLocaleString() : '';
-
-} else if (col.id === 'type') {
-
-td.innerHTML = r.type === 'in'
-
-? '<span class="badge ok">in</span>'
-
-: '<span class="badge no">out</span>';
-
-} else {
-
-td.textContent = r[col.id] == null ? '' : String(r[col.id]);
-
-}
-
-tr.appendChild(td);
-
-}
-
-tbody.appendChild(tr);
-
-}
-
-var headThs = headerRow.querySelectorAll('th.sortable');
-
-for (var k=0;k<headThs.length;k++){ headThs[k].removeAttribute('data-sort'); }
-
-var idx = -1;
-
-var vis = visibleColumns();
-
-for (var m=0;m<vis.length;m++){ if (vis[m].id === state.sort.by) { idx = m; break; } }
-
-if (idx >= 0) {
-
-var th = headerRow.children[idx];
-
-if (th) th.setAttribute('data-sort', state.sort.dir);
-
-}
-
-}
-
-function exportAllToCsv() {
-
-var cols = [];
-
-for (var i=0;i<columns.length;i++){ cols.push(columns[i].id); }
-
-var headers = [];
-
-for (var j=0;j<columns.length;j++){ headers.push(columns[j].label); }
-
-var rows = [];
-
-for (var r=0;r<DATA.length;r++){
-
-var row = [];
-
-for (var c=0;c<cols.length;c++){
-
-var id = cols[c];
-
-var cell = (id==='scanned_at' && DATA[r][id]) ? new Date(DATA[r][id]).toISOString() : (DATA[r][id] == null ? '' : DATA[r][id]);
-
-row.push(cell);
-
-}
-
-rows.push(row);
-
-}
-
-var merged = [headers];
-
-for (var x=0;x<rows.length;x++) merged.push(rows[x]);
-
-var csv = toCsv(merged);
-
-var blob = new Blob(['\uFEFF' + csv], { type:'text/csv;charset=utf-8;' });
-
-triggerDownload(blob, 'attendance_report.csv');
-
-}
-
-function toCsv(rows){
-
-var out = [];
-
-for (var i=0;i<rows.length;i++){
-
-var line = [];
-
-for (var j=0;j<rows[i].length;j++) line.push(csvEscape(rows[i][j]));
-
-out.push(line.join(','));
-
-}
-
-return out.join('\r\n');
-
-}
-
-function csvEscape(v){
-
-var s = String(v == null ? '' : v);
-
-return /[",\n]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s;
-
-}
-
-function triggerDownload(blob, filename){
-
-var a = document.createElement('a');
-
-a.href = URL.createObjectURL(blob);
-
-a.download = filename;
-
-a.click();
-
-setTimeout(function(){ URL.revokeObjectURL(a.href); }, 1000);
-
-}
-
-function escapeHtml(str){
-
-var s = String(str);
-
-s = s.replace(/&/g,'&amp;');
-
-s = s.replace(/</g,'&lt;');
-
-s = s.replace(/>/g,'&gt;');
-
-s = s.replace(/"/g,'&quot;');
-
-s = s.replace(/'/g,'&#39;');
-
-return s;
-
-}
-
-function escapeAttr(str){ return escapeHtml(String(str)).split('\n').join(' '); }
-
-function debounce(fn, wait){
-
-var t;
-
-return function(){
-
-var ctx=this, args=arguments;
-
-clearTimeout(t);
-
-t=setTimeout(function(){ fn.apply(ctx, args); }, wait);
-
-};
-
-}
-
-})();
-
-</script>
-
-<?php else: ?>
-
-<p>Hiç kayıt bulunamadı.</p>
-
-<?php endif; ?>
-
-<style>
-
-.table-wrap { overflow:auto; }
-
-.table { border-collapse: collapse; width: 100%; min-width: 1000px; table-layout: fixed; }
-
-.table th, .table td { border:1px solid #ddd; padding:.5rem .6rem; text-align:left; vertical-align:top; }
-
-.table thead th { background:#f8f8f8; position: sticky; top: 0; z-index: 2; }
-
-.table thead tr:nth-child(2) th { top: 34px; background:#fcfcfc; z-index: 1; }
-
-th.sortable { cursor:pointer; padding-right:1.2rem; position: sticky; }
-
-th.sortable::after { content:'↕'; position:absolute; right:.4rem; color:#888; font-size:.9em; }
-
-th.sortable[data-sort="asc"]::after { content:'↑'; color:#333; }
-
-th.sortable[data-sort="desc"]::after { content:'↓'; color:#333; }
-
-#filtersRow th { padding:.35rem .4rem; }
-
-#filtersRow input[type="text"], #filtersRow input[type="date"], #filtersRow select {
-
-width:100%; box-sizing:border-box; padding:.35rem .45rem; border:1px solid #ccc; border-radius:.375rem;
-
-}
-
-.filter-date { display:grid; grid-template-columns:1fr 1fr; gap:.25rem; }
-
-.btn { display:inline-block; padding:.25rem .5rem; border:1px solid #888; border-radius:.375rem; text-decoration:none; color:#222; background:#fafafa; cursor:pointer; }
-
-.btn:hover { background:#f0f0f0; }
-
-.badge.ok { background:#e8f6ec; color:#1b7f3b; padding:.1rem .35rem; border-radius:.4rem; border:1px solid #bfe5cc; }
-
-.badge.no { background:#fff2f2; color:#b51e1e; padding:.1rem .35rem; border-radius:.4rem; border:1px solid #f1c0c0; }
-
-.spacer { flex:1 1 auto; }
-
-.column-panel { border: 1px solid #ddd; padding: .5rem; border-radius: .5rem; margin-bottom: .5rem; background:#fafafa; }
-
-.column-panel .columns { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: .35rem .75rem; margin-top: .5rem; }
-
-.column-panel .colchk { display: flex; align-items: center; gap: .4rem; }
-
-</style>
+$content = ob_get_clean();
+include __DIR__ . '/../layouts/base.php';
