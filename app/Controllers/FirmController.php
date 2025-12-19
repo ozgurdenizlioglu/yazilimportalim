@@ -56,7 +56,7 @@ class FirmController extends Controller
         }
 
         // Opsiyonel: unique pre-check (DB zaten garantiliyor)
-        foreach (['registration_no','mersis_no','tax_number'] as $u) {
+        foreach (['registration_no', 'mersis_no', 'tax_number'] as $u) {
             if (!empty($data[$u]) && Firm::existsByUnique($pdo, $u, (string)$data[$u])) {
                 http_response_code(409);
                 echo "Aynı $u ile kayıt mevcut.";
@@ -100,7 +100,7 @@ class FirmController extends Controller
 
         $this->view('firms/edit', [
             'title' => 'Firmayı Düzenle',
-            'firm' => $firm, // View tarafında 'firm' olarak kullanmak pratik
+            'firm' => $firm,
         ]);
     }
 
@@ -131,7 +131,7 @@ class FirmController extends Controller
             return;
         }
 
-        foreach (['registration_no','mersis_no','tax_number'] as $u) {
+        foreach (['registration_no', 'mersis_no', 'tax_number'] as $u) {
             if (!empty($data[$u]) && Firm::existsByUnique($pdo, $u, (string)$data[$u], excludeId: $id)) {
                 http_response_code(409);
                 echo "Aynı $u ile başka kayıt mevcut.";
@@ -171,6 +171,303 @@ class FirmController extends Controller
 
         header('Location: /firms');
         exit;
+    }
+
+    // ============= BULK UPLOAD =============
+    // firms/index’teki “Sunucuya Yükle” butonunun action’ı: /firms/bulk-upload
+    // Router’inizde bu metoda yönlendirdiğinizden emin olun.
+    public function bulkUpload(): void
+    {
+        header('Content-Type: application/json; charset=utf-8');
+
+        try {
+            // 1) Gövdeyi al (FormData: payload ya da application/json)
+            $payloadJson = null;
+
+            if (isset($_POST['payload'])) {
+                $payloadJson = (string)$_POST['payload'];
+            } else {
+                $raw = file_get_contents('php://input') ?: '';
+                if ($raw !== '') {
+                    $parsed = json_decode($raw, true);
+                    if (json_last_error() === JSON_ERROR_NONE) {
+                        if (isset($parsed['payload']) && is_string($parsed['payload'])) {
+                            $payloadJson = $parsed['payload'];
+                        } elseif (isset($parsed['rows']) && is_array($parsed['rows'])) {
+                            $payloadJson = json_encode(['rows' => $parsed['rows']], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                        }
+                    }
+                }
+            }
+
+            if (!$payloadJson) {
+                http_response_code(400);
+                echo json_encode(['message' => 'payload missing']);
+                return;
+            }
+
+            $payload = json_decode($payloadJson, true);
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                http_response_code(400);
+                echo json_encode(['message' => 'payload not valid JSON']);
+                return;
+            }
+
+            $rows = $payload['rows'] ?? null;
+            if (!is_array($rows) || count($rows) < 2) {
+                http_response_code(422);
+                echo json_encode(['message' => 'rows must include header + at least 1 data row']);
+                return;
+            }
+
+            // 2) Başlıklar
+            $headers = array_map(static fn($h) => trim((string)$h), (array)$rows[0]);
+            $dataRows = array_slice($rows, 1);
+
+            // 3) İzin verilen kolonlar (companies şemasına göre)
+            $allowedColumns = [
+                'id',
+                'uuid',
+                'name',
+                'short_name',
+                'legal_type',
+                'registration_no',
+                'mersis_no',
+                'tax_office',
+                'tax_number',
+                'email',
+                'phone',
+                'secondary_phone',
+                'fax',
+                'website',
+                'address_line1',
+                'address_line2',
+                'city',
+                'state_region',
+                'postal_code',
+                'country_code',
+                'latitude',
+                'longitude',
+                'industry',
+                'status',
+                'currency_code',
+                'timezone',
+                'vat_exempt',
+                'e_invoice_enabled',
+                'logo_url',
+                'notes',
+                'is_active',
+                'created_at',
+                'updated_at',
+                'deleted_at',
+                'created_by',
+                'updated_by'
+            ];
+
+            // Bilinmeyen başlık kontrolü
+            $unknown = array_values(array_diff($headers, $allowedColumns));
+            if (!empty($unknown)) {
+                http_response_code(422);
+                echo json_encode(['message' => 'Unknown header(s): ' . implode(', ', $unknown)]);
+                return;
+            }
+
+            // 4) Satırları normalize et
+            $prepared = [];
+            foreach ($dataRows as $r) {
+                if (!is_array($r)) continue;
+
+                // Satırı başlığa eşitle
+                $rowVals = array_map(static fn($v) => is_null($v) ? '' : (string)$v, $r);
+                if (count($rowVals) < count($headers)) {
+                    $rowVals = array_pad($rowVals, count($headers), '');
+                } elseif (count($rowVals) > count($headers)) {
+                    $rowVals = array_slice($rowVals, 0, count($headers));
+                }
+
+                $assoc = array_combine($headers, $rowVals);
+                if ($assoc === false) continue;
+
+                // Trim
+                foreach ($assoc as $k => $v) {
+                    $assoc[$k] = is_string($v) ? trim($v) : $v;
+                }
+
+                // uuid: boşsa gönderme; DB default gen_random_uuid() üretecek
+                if (array_key_exists('uuid', $assoc) && $assoc['uuid'] === '') {
+                    unset($assoc['uuid']);
+                }
+
+                // Boolean alanlar
+                foreach (['is_active', 'vat_exempt', 'e_invoice_enabled'] as $bk) {
+                    if (array_key_exists($bk, $assoc)) {
+                        $b = $this->strToBoolOrNull($assoc[$bk]);
+                        // NULL ise unset edersek DB default devreye girer
+                        if ($b === null) {
+                            unset($assoc[$bk]);
+                        } else {
+                            $assoc[$bk] = $b;
+                        }
+                    }
+                }
+
+                // Tarihler (created_at, updated_at, deleted_at) — boşsa unset, doluysa parse
+                foreach (['created_at', 'updated_at', 'deleted_at'] as $dk) {
+                    if (array_key_exists($dk, $assoc)) {
+                        $parsed = $this->parseDateOrNull($assoc[$dk]);
+                        if ($parsed === null) {
+                            unset($assoc[$dk]); // default/NULL çalışır
+                        } else {
+                            $assoc[$dk] = $parsed; // 'Y-m-d H:i:s' (timestamptz parse edilir)
+                        }
+                    }
+                }
+
+                // Sayısal: latitude/longitude
+                foreach (['latitude', 'longitude'] as $nk) {
+                    if (array_key_exists($nk, $assoc)) {
+                        $val = str_replace(',', '.', (string)$assoc[$nk]);
+                        if ($val === '') {
+                            unset($assoc[$nk]); // NULL olsun
+                        } else {
+                            $assoc[$nk] = is_numeric($val) ? (float)$val : null;
+                        }
+                    }
+                }
+
+                // Boş stringleri NULL’a çevir (metinsel alanlar)
+                foreach (
+                    [
+                        'name',
+                        'short_name',
+                        'legal_type',
+                        'registration_no',
+                        'mersis_no',
+                        'tax_office',
+                        'tax_number',
+                        'email',
+                        'phone',
+                        'secondary_phone',
+                        'fax',
+                        'website',
+                        'address_line1',
+                        'address_line2',
+                        'city',
+                        'state_region',
+                        'postal_code',
+                        'country_code',
+                        'industry',
+                        'status',
+                        'currency_code',
+                        'timezone',
+                        'logo_url',
+                        'notes',
+                        'created_by',
+                        'updated_by'
+                    ] as $tk
+                ) {
+                    if (array_key_exists($tk, $assoc) && $assoc[$tk] === '') {
+                        // status boşsa hiç göndermeyelim (DB default 'active')
+                        if ($tk === 'status') {
+                            unset($assoc[$tk]);
+                        } else {
+                            $assoc[$tk] = null;
+                        }
+                    }
+                }
+
+                // id: identity — excel’den gelirse kullanmayalım (opsiyonel)
+                if (array_key_exists('id', $assoc)) {
+                    unset($assoc['id']);
+                }
+
+                // Minimum doğrulama
+                if (!isset($assoc['name']) || $assoc['name'] === null || $assoc['name'] === '') {
+                    continue; // name olmadan satırı atla
+                }
+
+                // country_code 2 char ise bırak, değilse NULL’a çek (opsiyonel)
+                if (isset($assoc['country_code']) && $assoc['country_code'] !== null) {
+                    $assoc['country_code'] = mb_substr((string)$assoc['country_code'], 0, 2) ?: null;
+                }
+
+                // currency_code 3 char (opsiyonel kısaltma)
+                if (isset($assoc['currency_code']) && $assoc['currency_code'] !== null) {
+                    $assoc['currency_code'] = mb_substr((string)$assoc['currency_code'], 0, 3) ?: null;
+                }
+
+                $prepared[] = $assoc;
+            }
+
+            if (empty($prepared)) {
+                http_response_code(422);
+                echo json_encode(['message' => 'No valid data rows']);
+                return;
+            }
+
+            // 5) INSERT
+            $pdo = Database::pdo();
+            $pdo->beginTransaction();
+
+            // Başlığın kesişimine göre kolon listesi (id yok; uuid opsiyonel; created_at/updated_at opsiyonel)
+            $insertable = array_values(array_intersect($allowedColumns, $headers));
+            // name kesin olmalı
+            if (!in_array('name', $insertable, true)) {
+                $pdo->rollBack();
+                http_response_code(422);
+                echo json_encode(['message' => 'Header must include "name"']);
+                return;
+            }
+
+            // Her satır kolonları farklı olabilir (çünkü unset yaptık). Bu nedenle dinamik insert kullanacağız:
+            // Aynı kolon setine sahip satırları gruplayalım.
+            $groups = [];
+            foreach ($prepared as $row) {
+                $cols = array_keys($row);
+                sort($cols);
+                $key = implode('|', $cols);
+                $groups[$key]['cols'] = $cols;
+                $groups[$key]['rows'][] = $row;
+            }
+
+            $inserted = 0;
+
+            foreach ($groups as $group) {
+                $cols = $group['cols'];
+                if (!in_array('name', $cols, true)) {
+                    // name bu grupta yoksa bu grup atlanır
+                    continue;
+                }
+
+                $colsSql = '"' . implode('","', $cols) . '"';
+                $ph = '(' . implode(',', array_fill(0, count($cols), '?')) . ')';
+                $sql = "INSERT INTO companies ($colsSql) VALUES $ph";
+                $stmt = $pdo->prepare($sql);
+
+                foreach ($group['rows'] as $row) {
+                    $vals = [];
+                    foreach ($cols as $c) {
+                        $vals[] = $row[$c] ?? null;
+                    }
+                    $stmt->execute($vals);
+                    $inserted += $stmt->rowCount();
+                }
+            }
+
+            $pdo->commit();
+
+            http_response_code(200);
+            echo json_encode(['message' => 'ok', 'inserted' => $inserted], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        } catch (PDOException $e) {
+            if (isset($pdo) && $pdo->inTransaction()) $pdo->rollBack();
+            $code = $e->getCode() === '23505' ? 409 : 500;
+            http_response_code($code);
+            echo json_encode(['message' => 'db error', 'detail' => $e->getMessage()]);
+        } catch (\Throwable $e) {
+            if (isset($pdo) && $pdo->inTransaction()) $pdo->rollBack();
+            http_response_code(500);
+            echo json_encode(['message' => 'server error', 'detail' => $e->getMessage()]);
+        }
     }
 
     // --------------- Yardımcılar ---------------
@@ -250,7 +547,7 @@ class FirmController extends Controller
             $errors[] = 'Firma adı (name) gereklidir.';
         }
 
-        $allowedStatus = ['active','prospect','lead','suspended','inactive'];
+        $allowedStatus = ['active', 'prospect', 'lead', 'suspended', 'inactive'];
         if (!empty($data['status']) && !in_array($data['status'], $allowedStatus, true)) {
             $errors[] = 'Geçersiz durum (status).';
         }
@@ -283,6 +580,38 @@ class FirmController extends Controller
             return $v;
         }
         $v = strtolower((string)$v);
-        return in_array($v, ['1','true','on','yes','evet'], true);
+        return in_array($v, ['1', 'true', 'on', 'yes', 'evet'], true);
+    }
+
+    // ---- Bulk helper’lar ----
+    private function strToBoolOrNull($v): ?bool
+    {
+        if ($v === null) return null;
+        $s = strtolower(trim((string)$v));
+        if ($s === '') return null;
+        $trueSet = ['1', 'true', 'on', 'yes', 'evet', 'y', 't'];
+        $falseSet = ['0', 'false', 'off', 'no', 'hayir', 'hayır', 'n', 'f'];
+        if (in_array($s, $trueSet, true)) return true;
+        if (in_array($s, $falseSet, true)) return false;
+        return null;
+    }
+
+    private function parseDateOrNull($v): ?string
+    {
+        if ($v === null) return null;
+        $s = trim((string)$v);
+        if ($s === '') return null;
+        $ts = strtotime($s);
+        if ($ts === false) return null;
+        // timestamptz için bu format uygundur
+        return date('Y-m-d H:i:s', $ts);
+    }
+
+    private function uuidv4(): string
+    {
+        $data = random_bytes(16);
+        $data[6] = chr((ord($data[6]) & 0x0f) | 0x40); // v4
+        $data[8] = chr((ord($data[8]) & 0x3f) | 0x80); // variant
+        return vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($data), 4));
     }
 }

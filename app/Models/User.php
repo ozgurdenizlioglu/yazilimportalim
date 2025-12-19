@@ -300,4 +300,29 @@ final class User
         // $stmt = $pdo->prepare("DELETE FROM public.users WHERE id = :id");
         // $stmt->execute([':id' => $id]);
     }
+
+    // EK: Benzersiz alan kontrolü (email, national_id, passport_no, uuid)
+    public static function existsByUnique(PDO $pdo, string $column, string $value, ?int $excludeId = null): bool
+    {
+        // Sadece bu kolonlara izin ver
+        $allowed = ['email', 'national_id', 'passport_no', 'uuid'];
+        if (!in_array($column, $allowed, true)) {
+            throw new \InvalidArgumentException('Invalid unique column: ' . $column);
+        }
+
+        $sql = "SELECT 1 FROM public.users WHERE \"$column\" = :val AND deleted_at IS NULL";
+        $params = [':val' => $value];
+
+        if ($excludeId !== null) {
+            $sql .= " AND id <> :excludeId";
+            $params[':excludeId'] = $excludeId;
+        }
+
+        $sql .= " LIMIT 1";
+
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+
+        return (bool)$stmt->fetchColumn();
+    }
 }

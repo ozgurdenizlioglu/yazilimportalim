@@ -40,6 +40,8 @@ $router->post('/users/store', [UserController::class, 'store']);
 $router->get('/users/edit', [UserController::class, 'edit']); // ?id=...
 $router->post('/users/update', [UserController::class, 'update']);
 $router->post('/users/delete', [UserController::class, 'destroy']);
+$router->post('/users/bulk-upload', [UserController::class, 'bulkUpload']);
+$router->get('/users/template', [UserController::class, 'downloadTemplate']);
 
 // QR/Scan/Attendance
 $router->get('/scan', [ScanController::class, 'show']);
@@ -57,6 +59,7 @@ $router->post('/firms/store', [FirmController::class, 'store']);
 $router->get('/firms/edit', [FirmController::class, 'edit']); // ?id=...
 $router->post('/firms/update', [FirmController::class, 'update']);
 $router->post('/firms/delete', [FirmController::class, 'destroy']);
+$router->post('/firms/bulk-upload', [FirmController::class, 'bulkUpload']);
 
 // İsteği çalıştır
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';

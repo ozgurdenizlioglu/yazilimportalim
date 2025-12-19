@@ -1,0 +1,34 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: ./database/Dockerfile
+    image: myapp-php:8.2-apache-pg
+    container_name: myapp
+    working_dir: /var/www/html
+    ports:
+      - "8000:80"
+    volumes:
+      - ./public:/var/www/html
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: mydb
+      DB_USER: myuser
+      DB_PASS: mypass
+    depends_on:
+      - db
+
+  db:
+    image: postgres:16
+    container_name: mydb
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: mydb
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mypass
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+
+volumes:
+  pg_data:

@@ -1,4 +1,4 @@
-# OS ve editor dosyaları
+OS ve editor dosyaları
 .DS_Store
 Thumbs.db
 *.log
@@ -7,16 +7,25 @@ Thumbs.db
 *.swo
 *.bak
 
-# PHP bağımlılık yönetimi (Composer)
+Satır sonu/charset test dosyaları (nadir)
+*.orig
+*.rej
+
+PHP bağımlılık yönetimi (Composer)
 vendor/
 composer.lock
 
-# Ortam/secret dosyaları
+Ortam/secret dosyaları
 .env
 .env.*
 !.env.example
+.env.backup
+.env.local
+.env.development
+.env.production
+.env.test
 
-# Önbellek ve derlemeler
+Önbellek ve derlemeler
 cache/
 tmp/
 temp/
@@ -25,28 +34,27 @@ storage/
 storage/*.key
 *.cache
 
-# IDE/Editor
+IDE/Editor
 .vscode/
 .idea/
 *.iml
 
-# PHPUnit
+PHPUnit
 .phpunit.result.cache
 coverage/
 
-# Laravel/Lumen (kullanıyorsan)
+Laravel/Lumen (kullanıyorsan)
 bootstrap/cache/
 storage/
 homestead.yaml
 Homestead.yaml
-.env.backup
 
-# Symfony (kullanıyorsan)
+Symfony (kullanıyorsan)
 var/
 app/cache/
 app/logs/
 
-# WordPress (kullanıyorsan)
+WordPress (kullanıyorsan)
 wp-content/uploads/
 wp-content/cache/
 wp-content/upgrade/
@@ -54,20 +62,90 @@ wp-content/advanced-cache.php
 wp-content/backup-db/
 wp-content/backups/
 wp-content/blogs.dir/
-wp-content/upgrade/
 wp-content/wp-cache-config.php
 wp-content/mu-plugins/
-# wp-config.php gibi hassas dosyaları da track etme
+
+wp-config.php gibi hassas dosyaları da track etme
 wp-config.php
 
-# Node (ön uç araçları kullanıyorsan)
+Node (ön uç araçları kullanıyorsan)
 node_modules/
 npm-debug.log*
 yarn-error.log*
+pnpm-debug.log*
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
 
-# Build çıktıları
+Build çıktıları
 dist/
 build/
 public/build/
 public/assets/*
 !public/assets/.gitkeep
+
+Docker (imajlar/containers değil ama proje içi dosya/klasörler)
+Not: docker-compose.yml ve Dockerfile'ı VCS'e dahil etmeye DEVAM edin (ignore ETME).
+Yerel bind mount/volume klasörleri ve kalıcı veriler:
+docker-data/
+docker/
+.docker/
+.dockerignore
+
+Docker volume'ları için kullandığın yerel klasör isimleri (örnekler)
+pg_data/
+db_data/
+mysql_data/
+redis_data/
+es_data/
+
+SQL dump ve büyük geçici veriler
+*.sql
+*.sql.gz
+*.dump
+*.bak.sql
+
+OS/FS kaynaklı
+ehthumbs.db
+Icon?
+Desktop.ini
+
+Logs (geniş kapsam)
+.log.
+logs/**/*.log
+
+Cache (framework/genel)
+.cache/
+.cache-loader/
+.nyc_output/
+coverage/
+.coverage
+.coverage.*
+
+Frontend toolchain çıktı/ara dosyalar
+.sass-cache/
+bower_components/
+jspm_packages/
+.cache/
+.eslintcache
+.stylelintcache
+.rpt2_cache/
+.turbo/
+.next/
+.nuxt/
+.out/
+.vercel/
+server/dist/
+functions/.cache/
+
+PHPStorm/JetBrains ekleri
+*.ipr
+*.iws
+out/
+
+Misc
+*.pid
+*.seed
+*.tgz
+*.tar.gz
+*.zip
