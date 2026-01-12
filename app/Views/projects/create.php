@@ -14,15 +14,15 @@ $c = [
 
 ];
 
-$action = '/firms/store';
+$action = '/project/store';
 
 $submitLabel = 'Kaydet';
 
-$title = $title ?? 'Firma Ekle';
+$title = $title ?? 'Proje Ekle';
 
 $showIdHidden = false;
 
-$backUrl = '/firms';
+$backUrl = '/project';
 
 include __DIR__ . '/_form.php';
 

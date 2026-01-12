@@ -4,25 +4,21 @@ use App\Core\Helpers;
 
 ob_start();
 
-// Create için boş/varsayılan değerler
-
 $c = [
-
-    'status' => 'active',
 
     'is_active' => true,
 
 ];
 
-$action = '/firms/store';
+$action = '/contracts/store';
 
 $submitLabel = 'Kaydet';
 
-$title = $title ?? 'Firma Ekle';
+$title = $title ?? 'Sözleşme Ekle';
 
 $showIdHidden = false;
 
-$backUrl = '/firms';
+$backUrl = '/contracts';
 
 include __DIR__ . '/_form.php';
 

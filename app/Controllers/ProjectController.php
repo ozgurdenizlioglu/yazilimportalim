@@ -6,29 +6,36 @@ namespace App\Controllers;
 
 use App\Core\Controller;
 use App\Core\Database;
-use App\Models\Firm;
+use App\Models\Project;
 use PDO;
 use PDOException;
 
-class FirmController extends Controller
+class ProjectController extends Controller
 {
     // Liste
     public function index(): void
     {
         $pdo = Database::pdo();
-        $firms = Firm::all($pdo); // deleted_at IS NULL filtreli
+        $projects = Project::all($pdo); // deleted_at IS NULL filtreli
 
-        $this->view('firms/index', [
-            'title' => 'Firmalar',
-            'firms' => $firms, // ÖNEMLİ: firms/index.php $firms bekliyor
+        $this->view('projects/index', [
+            'title' => 'Projeler',
+            'projects' => $projects, // projects/index.php $projects bekler
         ]);
     }
 
     // Oluştur formu
     public function create(): void
     {
-        $this->view('firms/create', [
-            'title' => 'Firma Ekle',
+        $pdo = Database::pdo();
+
+        // Get list of contractor companies for the form
+        $stmt = $pdo->query("SELECT id, name FROM companies WHERE deleted_at IS NULL AND contractor = true ORDER BY name ASC");
+        $companies = $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+
+        $this->view('projects/create', [
+            'title' => 'Proje Ekle',
+            'companies' => $companies,
         ]);
     }
 
@@ -37,17 +44,17 @@ class FirmController extends Controller
     {
         $pdo = Database::pdo();
 
-        // Handle logo upload first
+        // Handle image upload first
         try {
-            $logoUrl = $this->handleLogoUpload();
-        } catch (\RuntimeException $e) {
-            http_response_code(422);
-            echo 'Logo yükleme hatası: ' . $e->getMessage();
+            $imageUrl = $this->handleImageUpload();
+        } catch (\Exception $e) {
+            http_response_code(400);
+            echo 'Görsel yükleme hatası: ' . $e->getMessage();
             return;
         }
 
         $data = $this->collectFormData(isUpdate: false);
-        $data['logo_url'] = $logoUrl;
+        $data['image_url'] = $imageUrl;
 
         // created_by/updated_by (oturumdan)
         $currentUserId = $_SESSION['user_id'] ?? null;
@@ -55,9 +62,6 @@ class FirmController extends Controller
         $data['updated_by'] = $currentUserId;
 
         // Checkbox’lar
-        $data['vat_exempt'] = $this->toBool($_POST['vat_exempt'] ?? false);
-        $data['e_invoice_enabled'] = $this->toBool($_POST['e_invoice_enabled'] ?? false);
-        $data['contractor'] = $this->toBool($_POST['contractor'] ?? false);
         $data['is_active'] = $this->toBool($_POST['is_active'] ?? true);
 
         $errors = $this->validate($data, isUpdate: false);
@@ -67,28 +71,19 @@ class FirmController extends Controller
             return;
         }
 
-        // Opsiyonel: unique pre-check (DB zaten garantiliyor)
-        foreach (['registration_no', 'mersis_no', 'tax_number'] as $u) {
-            if (!empty($data[$u]) && Firm::existsByUnique($pdo, $u, (string)$data[$u])) {
-                http_response_code(409);
-                echo "Aynı $u ile kayıt mevcut.";
-                return;
-            }
-        }
-
         try {
-            $id = Firm::create($pdo, $data);
+            $id = Project::create($pdo, $data);
         } catch (PDOException $e) {
-            // Unique violation (PostgreSQL 23505)
+            // Unique violation (PostgreSQL 23505) — uuid unique ihlali olabilir
             if ($e->getCode() === '23505') {
                 http_response_code(409);
-                echo 'Benzersiz alan ihlali (registration_no/mersis_no/tax_number).';
+                echo 'Benzersiz alan ihlali (muhtemelen uuid).';
                 return;
             }
             throw $e;
         }
 
-        header('Location: /firms');
+        header('Location: /projects');
         exit;
     }
 
@@ -103,16 +98,21 @@ class FirmController extends Controller
             return;
         }
 
-        $firm = Firm::find($pdo, $id);
-        if (!$firm) {
+        $project = Project::find($pdo, $id);
+        if (!$project) {
             http_response_code(404);
-            echo 'Firma bulunamadı';
+            echo 'Proje bulunamadı';
             return;
         }
 
-        $this->view('firms/edit', [
-            'title' => 'Firmayı Düzenle',
-            'firm' => $firm,
+        // Get list of contractor companies for the form
+        $stmt = $pdo->query("SELECT id, name FROM companies WHERE deleted_at IS NULL AND contractor = true ORDER BY name ASC");
+        $companies = $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+
+        $this->view('projects/edit', [
+            'title' => 'Projeyi Düzenle',
+            'project' => $project,
+            'companies' => $companies,
         ]);
     }
 
@@ -123,25 +123,22 @@ class FirmController extends Controller
         $id = (int)($_POST['id'] ?? 0);
         if ($id <= 0) {
             http_response_code(422);
-            echo 'Geçersiz firma';
+            echo 'Geçersiz proje';
             return;
         }
 
-        // Handle logo upload first
+        // Handle image upload first
         try {
-            $logoUrl = $this->handleLogoUpload();
-        } catch (\RuntimeException $e) {
-            http_response_code(422);
-            echo 'Logo yükleme hatası: ' . $e->getMessage();
+            $imageUrl = $this->handleImageUpload();
+        } catch (\Exception $e) {
+            http_response_code(400);
+            echo 'Görsel yükleme hatası: ' . $e->getMessage();
             return;
         }
 
         $data = $this->collectFormData(isUpdate: true);
-        $data['logo_url'] = $logoUrl;
+        $data['image_url'] = $imageUrl;
 
-        $data['vat_exempt'] = $this->toBool($_POST['vat_exempt'] ?? false);
-        $data['e_invoice_enabled'] = $this->toBool($_POST['e_invoice_enabled'] ?? false);
-        $data['contractor'] = $this->toBool($_POST['contractor'] ?? false);
         $data['is_active'] = $this->toBool($_POST['is_active'] ?? true);
 
         $currentUserId = $_SESSION['user_id'] ?? null;
@@ -154,26 +151,18 @@ class FirmController extends Controller
             return;
         }
 
-        foreach (['registration_no', 'mersis_no', 'tax_number'] as $u) {
-            if (!empty($data[$u]) && Firm::existsByUnique($pdo, $u, (string)$data[$u], excludeId: $id)) {
-                http_response_code(409);
-                echo "Aynı $u ile başka kayıt mevcut.";
-                return;
-            }
-        }
-
         try {
-            Firm::update($pdo, $id, $data);
+            Project::update($pdo, $id, $data);
         } catch (PDOException $e) {
             if ($e->getCode() === '23505') {
                 http_response_code(409);
-                echo 'Benzersiz alan ihlali (registration_no/mersis_no/tax_number).';
+                echo 'Benzersiz alan ihlali (muhtemelen uuid).';
                 return;
             }
             throw $e;
         }
 
-        header('Location: /firms');
+        header('Location: /projects');
         exit;
     }
 
@@ -182,29 +171,29 @@ class FirmController extends Controller
     {
         $pdo = Database::pdo();
 
-        // index tablosunda form uuid gönderiyor:
+        // index tablosunda form uuid gönderebilir:
         $uuid = $_POST['uuid'] ?? null;
         $id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
 
         if ($uuid) {
-            Firm::deleteByUuid($pdo, $uuid);
+            Project::deleteByUuid($pdo, $uuid);
         } elseif ($id > 0) {
-            Firm::delete($pdo, $id);
+            Project::delete($pdo, $id);
         }
 
-        header('Location: /firms');
+        header('Location: /projects');
         exit;
     }
 
     // ============= BULK UPLOAD =============
-    // firms/index’teki “Sunucuya Yükle” butonunun action’ı: /firms/bulk-upload
+    // projects/index’teki “Sunucuya Yükle” butonunun action’ı: /projects/bulk-upload
     // Router’inizde bu metoda yönlendirdiğinizden emin olun.
     public function bulkUpload(): void
     {
         header('Content-Type: application/json; charset=utf-8');
 
         try {
-            // 1) Gövdeyi al (FormData: payload ya da application/json)
+            // 1) Gövde
             $payloadJson = null;
 
             if (isset($_POST['payload'])) {
@@ -247,44 +236,34 @@ class FirmController extends Controller
             $headers = array_map(static fn($h) => trim((string)$h), (array)$rows[0]);
             $dataRows = array_slice($rows, 1);
 
-            // 3) İzin verilen kolonlar (companies şemasına göre)
+            // 3) İzin verilen kolonlar (project şemasına göre)
             $allowedColumns = [
                 'id',
                 'uuid',
                 'name',
                 'short_name',
-                'legal_type',
-                'registration_no',
-                'mersis_no',
-                'tax_office',
-                'tax_number',
-                'email',
-                'phone',
-                'secondary_phone',
-                'fax',
-                'website',
+                'project_path',
                 'address_line1',
                 'address_line2',
                 'city',
                 'state_region',
                 'postal_code',
                 'country_code',
-                'latitude',
-                'longitude',
-                'industry',
+                'company_id',
+                'start_date',
+                'end_date',
+                'budget',
+                'image_url',
+                'notes',
                 'status',
                 'currency_code',
                 'timezone',
-                'vat_exempt',
-                'e_invoice_enabled',
-                'logo_url',
-                'notes',
                 'is_active',
                 'created_at',
                 'updated_at',
                 'deleted_at',
                 'created_by',
-                'updated_by'
+                'updated_by',
             ];
 
             // Bilinmeyen başlık kontrolü
@@ -316,45 +295,56 @@ class FirmController extends Controller
                     $assoc[$k] = is_string($v) ? trim($v) : $v;
                 }
 
-                // uuid: boşsa gönderme; DB default gen_random_uuid() üretecek
+                // uuid: boşsa gönderme; DB default gen_random_uuid()
                 if (array_key_exists('uuid', $assoc) && $assoc['uuid'] === '') {
                     unset($assoc['uuid']);
                 }
 
                 // Boolean alanlar
-                foreach (['is_active', 'vat_exempt', 'e_invoice_enabled', 'contractor'] as $bk) {
+                foreach (['is_active'] as $bk) {
                     if (array_key_exists($bk, $assoc)) {
                         $b = $this->strToBoolOrNull($assoc[$bk]);
-                        // NULL ise unset edersek DB default devreye girer
                         if ($b === null) {
-                            unset($assoc[$bk]);
+                            unset($assoc[$bk]); // default devreye girsin
                         } else {
                             $assoc[$bk] = $b;
                         }
                     }
                 }
 
-                // Tarihler (created_at, updated_at, deleted_at) — boşsa unset, doluysa parse
+                // Tarihler: created_at, updated_at, deleted_at (timestamptz), start_date, end_date (date)
                 foreach (['created_at', 'updated_at', 'deleted_at'] as $dk) {
                     if (array_key_exists($dk, $assoc)) {
                         $parsed = $this->parseDateOrNull($assoc[$dk]);
                         if ($parsed === null) {
-                            unset($assoc[$dk]); // default/NULL çalışır
+                            unset($assoc[$dk]);
                         } else {
-                            $assoc[$dk] = $parsed; // 'Y-m-d H:i:s' (timestamptz parse edilir)
+                            $assoc[$dk] = $parsed; // 'Y-m-d H:i:s'
+                        }
+                    }
+                }
+                foreach (['start_date', 'end_date'] as $dk) {
+                    if (array_key_exists($dk, $assoc)) {
+                        $parsed = $this->parseDateOnlyOrNull($assoc[$dk]);
+                        if ($parsed === null) {
+                            unset($assoc[$dk]);
+                        } else {
+                            $assoc[$dk] = $parsed; // 'Y-m-d'
                         }
                     }
                 }
 
-                // Sayısal: latitude/longitude
-                foreach (['latitude', 'longitude'] as $nk) {
-                    if (array_key_exists($nk, $assoc)) {
-                        $val = str_replace(',', '.', (string)$assoc[$nk]);
-                        if ($val === '') {
-                            unset($assoc[$nk]); // NULL olsun
-                        } else {
-                            $assoc[$nk] = is_numeric($val) ? (float)$val : null;
-                        }
+                // Sayısal: budget, company_id
+                if (array_key_exists('budget', $assoc)) {
+                    $assoc['budget'] = $this->parseNumberOrNull($assoc['budget']);
+                    if ($assoc['budget'] === null && $assoc['budget'] !== 0.0) {
+                        unset($assoc['budget']);
+                    }
+                }
+                if (array_key_exists('company_id', $assoc)) {
+                    $assoc['company_id'] = $this->parseIntOrNull($assoc['company_id']);
+                    if ($assoc['company_id'] === null) {
+                        unset($assoc['company_id']);
                     }
                 }
 
@@ -363,36 +353,25 @@ class FirmController extends Controller
                     [
                         'name',
                         'short_name',
-                        'legal_type',
-                        'registration_no',
-                        'mersis_no',
-                        'tax_office',
-                        'tax_number',
-                        'email',
-                        'phone',
-                        'secondary_phone',
-                        'fax',
-                        'website',
+                        'project_path',
                         'address_line1',
                         'address_line2',
                         'city',
                         'state_region',
                         'postal_code',
                         'country_code',
-                        'industry',
+                        'image_url',
+                        'notes',
                         'status',
                         'currency_code',
                         'timezone',
-                        'logo_url',
-                        'notes',
                         'created_by',
-                        'updated_by'
+                        'updated_by',
                     ] as $tk
                 ) {
                     if (array_key_exists($tk, $assoc) && $assoc[$tk] === '') {
-                        // status boşsa hiç göndermeyelim (DB default 'active')
                         if ($tk === 'status') {
-                            unset($assoc[$tk]);
+                            unset($assoc[$tk]); // DB default 'active'
                         } else {
                             $assoc[$tk] = null;
                         }
@@ -409,12 +388,12 @@ class FirmController extends Controller
                     continue; // name olmadan satırı atla
                 }
 
-                // country_code 2 char ise bırak, değilse NULL’a çek (opsiyonel)
+                // country_code 2 char (opsiyonel kısaltma)
                 if (isset($assoc['country_code']) && $assoc['country_code'] !== null) {
                     $assoc['country_code'] = mb_substr((string)$assoc['country_code'], 0, 2) ?: null;
                 }
 
-                // currency_code 3 char (opsiyonel kısaltma)
+                // currency_code 3 char
                 if (isset($assoc['currency_code']) && $assoc['currency_code'] !== null) {
                     $assoc['currency_code'] = mb_substr((string)$assoc['currency_code'], 0, 3) ?: null;
                 }
@@ -432,7 +411,7 @@ class FirmController extends Controller
             $pdo = Database::pdo();
             $pdo->beginTransaction();
 
-            // Başlığın kesişimine göre kolon listesi (id yok; uuid opsiyonel; created_at/updated_at opsiyonel)
+            // Başlığın kesişimine göre kolon listesi
             $insertable = array_values(array_intersect($allowedColumns, $headers));
             // name kesin olmalı
             if (!in_array('name', $insertable, true)) {
@@ -442,8 +421,7 @@ class FirmController extends Controller
                 return;
             }
 
-            // Her satır kolonları farklı olabilir (çünkü unset yaptık). Bu nedenle dinamik insert kullanacağız:
-            // Aynı kolon setine sahip satırları gruplayalım.
+            // Aynı kolon setine sahip satırları grupla
             $groups = [];
             foreach ($prepared as $row) {
                 $cols = array_keys($row);
@@ -458,13 +436,12 @@ class FirmController extends Controller
             foreach ($groups as $group) {
                 $cols = $group['cols'];
                 if (!in_array('name', $cols, true)) {
-                    // name bu grupta yoksa bu grup atlanır
                     continue;
                 }
 
                 $colsSql = '"' . implode('","', $cols) . '"';
                 $ph = '(' . implode(',', array_fill(0, count($cols), '?')) . ')';
-                $sql = "INSERT INTO companies ($colsSql) VALUES $ph";
+                $sql = "INSERT INTO project ($colsSql) VALUES $ph";
                 $stmt = $pdo->prepare($sql);
 
                 foreach ($group['rows'] as $row) {
@@ -529,51 +506,54 @@ class FirmController extends Controller
             return $val;
         };
 
-        $toNumber = static function (?string $v): ?float {
-            if ($v === null || $v === '') {
-                return null;
-            }
+        $toFloat = static function (?string $v): ?float {
+            if ($v === null || $v === '') return null;
+            $v = str_replace(',', '.', $v);
             $n = filter_var($v, FILTER_VALIDATE_FLOAT);
             return $n === false ? null : (float)$n;
         };
 
+        $toInt = static function (?string $v): ?int {
+            if ($v === null || $v === '') return null;
+            $n = filter_var($v, FILTER_VALIDATE_INT);
+            return $n === false ? null : (int)$n;
+        };
+
+        $toDateOnly = function (?string $v): ?string {
+            if ($v === null || trim($v) === '') return null;
+            return $this->parseDateOnlyOrNull($v);
+        };
+
         return [
             // Temel
-            'name'              => $g('name', 200),
-            'short_name'        => $g('short_name', 100),
-            'legal_type'        => $g('legal_type', 30),
-            'registration_no'   => $g('registration_no', 100),
-            'mersis_no'         => $g('mersis_no', 50),
-            'tax_office'        => $g('tax_office', 120),
-            'tax_number'        => $g('tax_number', 50),
-
-            // İletişim
-            'email'             => $g('email'),
-            'phone'             => $g('phone', 30),
-            'secondary_phone'   => $g('secondary_phone', 30),
-            'fax'               => $g('fax', 30),
-            'website'           => $g('website', 2048),
+            'name'          => $g('name', 255),
+            'short_name'    => $g('short_name', 100),
+            'project_path'  => $g('project_path', 512),
 
             // Adres
-            'address_line1'     => $g('address_line1', 200),
-            'address_line2'     => $g('address_line2', 200),
-            'city'              => $g('city', 100),
-            'state_region'      => $g('state_region', 100),
-            'postal_code'       => $g('postal_code', 20),
-            'country_code'      => $g('country_code', 2),
+            'address_line1' => $g('address_line1'),
+            'address_line2' => $g('address_line2'),
+            'city'          => $g('city', 100),
+            'state_region'  => $g('state_region', 100),
+            'postal_code'   => $g('postal_code', 20),
+            'country_code'  => $g('country_code', 2),
 
-            // Koordinatlar
-            'latitude'          => $toNumber($g('latitude')),
-            'longitude'         => $toNumber($g('longitude')),
+            // İlişkiler
+            'company_id'    => $toInt($g('company_id')),
 
-            // Operasyonel
-            'industry'          => $g('industry', 120),
-            'status'            => $g('status', 20) ?? 'active',
-            'currency_code'     => $g('currency_code', 3),
-            'timezone'          => $g('timezone', 50),
+            // Tarihler
+            'start_date'    => $toDateOnly($g('start_date')),
+            'end_date'      => $toDateOnly($g('end_date')),
 
-            // Medya/Not
-            'notes'             => $g('notes'),
+            // Finans
+            'budget'        => $toFloat($g('budget')),
+            'currency_code' => $g('currency_code', 3),
+
+            // Diğer
+            'image_url'     => $g('image_url'),
+            'notes'         => $g('notes'),
+            'status'        => $g('status', 20) ?? 'active',
+            'timezone'      => $g('timezone', 50),
         ];
     }
 
@@ -582,10 +562,10 @@ class FirmController extends Controller
         $errors = [];
 
         if (!$data['name']) {
-            $errors[] = 'Firma adı (name) gereklidir.';
+            $errors[] = 'Proje adı (name) gereklidir.';
         }
 
-        $allowedStatus = ['active', 'prospect', 'lead', 'suspended', 'inactive'];
+        $allowedStatus = ['active', 'planned', 'in_progress', 'on_hold', 'completed', 'cancelled', 'inactive'];
         if (!empty($data['status']) && !in_array($data['status'], $allowedStatus, true)) {
             $errors[] = 'Geçersiz durum (status).';
         }
@@ -598,15 +578,19 @@ class FirmController extends Controller
             $errors[] = 'Para birimi (currency_code) 3 karakter olmalı.';
         }
 
-        if (!empty($data['email']) && !filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
-            $errors[] = 'Geçerli bir e-posta girin.';
+        if ($data['budget'] !== null) {
+            // numeric(18,2) doğrulaması
+            $scaled = round((float)$data['budget'], 2);
+            if (abs((float)$data['budget'] - $scaled) > 0.00001) {
+                $errors[] = 'Bütçe (budget) en fazla 2 ondalık olmalı.';
+            }
         }
 
-        if ($data['latitude'] !== null && ($data['latitude'] < -90 || $data['latitude'] > 90)) {
-            $errors[] = 'Latitude -90 ile 90 arasında olmalı.';
-        }
-        if ($data['longitude'] !== null && ($data['longitude'] < -180 || $data['longitude'] > 180)) {
-            $errors[] = 'Longitude -180 ile 180 arasında olmalı.';
+        // Tarih ilişkisi
+        if (!empty($data['start_date']) && !empty($data['end_date'])) {
+            if (strtotime($data['end_date']) < strtotime($data['start_date'])) {
+                $errors[] = 'Bitiş tarihi (end_date) başlangıç tarihinden (start_date) önce olamaz.';
+            }
         }
 
         return $errors;
@@ -641,8 +625,35 @@ class FirmController extends Controller
         if ($s === '') return null;
         $ts = strtotime($s);
         if ($ts === false) return null;
-        // timestamptz için bu format uygundur
-        return date('Y-m-d H:i:s', $ts);
+        return date('Y-m-d H:i:s', $ts); // timestamptz için
+    }
+
+    private function parseDateOnlyOrNull($v): ?string
+    {
+        if ($v === null) return null;
+        $s = trim((string)$v);
+        if ($s === '') return null;
+        $ts = strtotime($s);
+        if ($ts === false) return null;
+        return date('Y-m-d', $ts); // date için
+    }
+
+    private function parseNumberOrNull($v): ?float
+    {
+        if ($v === null) return null;
+        $s = str_replace(',', '.', trim((string)$v));
+        if ($s === '') return null;
+        $n = filter_var($s, FILTER_VALIDATE_FLOAT);
+        return $n === false ? null : (float)$n;
+    }
+
+    private function parseIntOrNull($v): ?int
+    {
+        if ($v === null) return null;
+        $s = trim((string)$v);
+        if ($s === '') return null;
+        $n = filter_var($s, FILTER_VALIDATE_INT);
+        return $n === false ? null : (int)$n;
     }
 
     private function uuidv4(): string
@@ -653,18 +664,18 @@ class FirmController extends Controller
         return vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($data), 4));
     }
 
-    private function handleLogoUpload(): ?string
+    private function handleImageUpload(): ?string
     {
-        if (!isset($_FILES['logo_file']) || $_FILES['logo_file']['error'] === UPLOAD_ERR_NO_FILE) {
+        if (!isset($_FILES['image_file']) || $_FILES['image_file']['error'] === UPLOAD_ERR_NO_FILE) {
             // No file uploaded, keep existing
-            return $_POST['existing_logo_url'] ?? null;
+            return $_POST['existing_image_url'] ?? null;
         }
 
-        $file = $_FILES['logo_file'];
+        $file = $_FILES['image_file'];
 
         // Check for upload errors
         if ($file['error'] !== UPLOAD_ERR_OK) {
-            throw new \RuntimeException('Logo yükleme hatası: ' . $file['error']);
+            throw new \RuntimeException('Görsel yükleme hatası: ' . $file['error']);
         }
 
         // Validate file type
@@ -677,9 +688,9 @@ class FirmController extends Controller
             throw new \RuntimeException('Geçersiz dosya türü. Sadece PNG, JPG, JPEG, GIF kabul edilir.');
         }
 
-        // Check file size (max 2MB)
-        if ($file['size'] > 2 * 1024 * 1024) {
-            throw new \RuntimeException('Dosya çok büyük. Maksimum 2MB.');
+        // Check file size (max 5MB for project images)
+        if ($file['size'] > 5 * 1024 * 1024) {
+            throw new \RuntimeException('Dosya çok büyük. Maksimum 5MB.');
         }
 
         // Generate unique filename
@@ -690,13 +701,13 @@ class FirmController extends Controller
         }
         $filename = $this->uuidv4() . '.' . strtolower($ext);
 
-        // Ensure logos directory exists
-        $logosDir = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'storage' . DIRECTORY_SEPARATOR . 'logos';
-        if (!is_dir($logosDir)) {
-            mkdir($logosDir, 0755, true);
+        // Ensure projects directory exists
+        $projectsDir = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'storage' . DIRECTORY_SEPARATOR . 'projects';
+        if (!is_dir($projectsDir)) {
+            mkdir($projectsDir, 0755, true);
         }
 
-        $targetPath = $logosDir . DIRECTORY_SEPARATOR . $filename;
+        $targetPath = $projectsDir . DIRECTORY_SEPARATOR . $filename;
 
         // Move uploaded file
         if (!move_uploaded_file($file['tmp_name'], $targetPath)) {
@@ -704,6 +715,48 @@ class FirmController extends Controller
         }
 
         // Return the relative path that can be used in URLs
-        return '/storage/logos/' . $filename;
+        return '/storage/projects/' . $filename;
+    }
+
+    /**
+     * API endpoint to get contractor companies for filtering
+     * Used in project create/edit forms with company dropdown
+     */
+    public function companyList(): void
+    {
+        $pdo = Database::pdo();
+        $search = trim($_GET['q'] ?? '');
+
+        if ($search !== '') {
+            // Search contractor companies by name
+            $stmt = $pdo->prepare("
+                SELECT id, name 
+                FROM companies 
+                WHERE deleted_at IS NULL 
+                AND contractor = true
+                AND (name ILIKE :search OR short_name ILIKE :search)
+                ORDER BY name ASC
+                LIMIT 50
+            ");
+            $stmt->execute([':search' => "%$search%"]);
+        } else {
+            // Get all contractor companies
+            $stmt = $pdo->query("
+                SELECT id, name 
+                FROM companies 
+                WHERE deleted_at IS NULL 
+                AND contractor = true
+                ORDER BY name ASC
+                LIMIT 100
+            ");
+        }
+
+        $companies = $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+
+        header('Content-Type: application/json');
+        echo json_encode([
+            'success' => true,
+            'data' => $companies,
+        ]);
     }
 }

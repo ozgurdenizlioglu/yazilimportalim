@@ -6,73 +6,47 @@ ob_start();
 
 ?>
 <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-3">
-
-  <h1 class="h4 m-0"><?= Helpers::e($title ?? 'Firmalar') ?></h1>
-
+  <h1 class="h4 m-0"><?= Helpers::e($title ?? 'Projeler') ?></h1>
   <div class="d-flex flex-wrap gap-2">
-
-    <a class="btn btn-primary" href="/firms/create"><i class="bi bi-plus-lg me-1"></i>Yeni Firma</a>
+    <a class="btn btn-primary" href="/projects/create"><i class="bi bi-plus-lg me-1"></i>Yeni Proje</a>
     <button class="btn btn-outline-secondary" type="button" id="toggleColumnPanel"><i class="bi bi-columns-gap me-1"></i>Kolonları Yönet</button>
-
     <button class="btn btn-outline-secondary" type="button" id="resetView"><i class="bi bi-arrow-counterclockwise me-1"></i>Görünümü Sıfırla</button>
-
     <button class="btn btn-success" type="button" id="exportExcel"><i class="bi bi-file-earmark-spreadsheet me-1"></i>Excele Aktar</button>
-
     <button class="btn btn-outline-primary" type="button" id="downloadTemplate"><i class="bi bi-download me-1"></i>Şablon İndir</button>
-
     <label class="btn btn-outline-secondary mb-0">
       <i class="bi bi-upload me-1"></i>Upload Et
       <input type="file" id="uploadFile" accept=".xlsx,.xls" hidden>
     </label>
   </div>
-
 </div>
 
-<?php $firmsJson = json_encode($firms ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>
+<?php $projectsJson = json_encode($projects ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>
 
-<?php if (!empty($firms)): ?>
+<?php if (!empty($projects)): ?>
 
   <div class="card shadow-sm">
-
     <div class="card-body p-0">
-
       <div class="table-wrap p-2 pt-0">
-
         <div id="columnPanel" class="column-panel card card-body py-2 mb-2" hidden>
-
           <div class="d-flex align-items-center justify-content-between">
-
             <strong>Görünen Kolonlar</strong>
-
             <div class="d-flex align-items-center gap-2">
-
               <label class="form-label m-0 small text-muted" for="pageSizeSelect">Bir sayfada</label>
-
               <select id="pageSizeSelect" class="form-select form-select-sm" style="width:auto;">
-
                 <option value="20">20 satır</option>
-
                 <option value="50">50 satır</option>
-
                 <option value="100">100 satır</option>
-
                 <option value="200">200 satır</option>
-
                 <option value="500">500 satır</option>
-
               </select>
-
             </div>
-
           </div>
-
           <hr class="my-2">
-
           <div id="columnCheckboxes" class="columns-grid"></div>
-
         </div>
+
         <div class="table-responsive">
-          <table class="table table-hover align-middle mb-0" id="firmsTable">
+          <table class="table table-hover align-middle mb-0" id="projectsTable">
             <colgroup id="colGroup"></colgroup>
             <thead id="tableHead">
               <tr id="filtersRow"></tr>
@@ -94,7 +68,7 @@ ob_start();
                 <div id="uploadPreview" class="upload-preview">Dosya okunuyor…</div>
               </div>
               <div class="modal-footer">
-                <form id="uploadSubmitForm" method="post" action="/firms/bulk-upload" class="ms-auto">
+                <form id="uploadSubmitForm" method="post" action="/projects/bulk-upload" class="ms-auto">
                   <!-- CSRF gerekiyorsa backend’inize uygun şekilde hidden ekleyin:
                   <input type="hidden" name="_token" value="<?= Helpers::e($_SESSION['csrf'] ?? '') ?>">
                   -->
@@ -112,9 +86,7 @@ ob_start();
     <!-- Kart altı: toplam | sayfa ve sayfalama -->
     <div class="card-footer d-flex flex-wrap gap-2 align-items-center">
       <div class="text-muted small" id="footerStats">Toplam: <strong>0</strong> | Sayfa: 1/1</div>
-
       <div class="ms-auto"></div>
-
       <nav>
         <ul class="pagination mb-0" id="pager">
           <li class="page-item"><a class="page-link" href="#" data-page="first">« İlk</a></li>
@@ -158,53 +130,53 @@ ob_start();
       }
     }
 
-    #firmsTable {
+    #projectsTable {
       table-layout: auto;
       border-collapse: separate;
       border-spacing: 0;
     }
 
-    #firmsTable thead {
+    #projectsTable thead {
       vertical-align: bottom;
     }
 
-    #firmsTable thead th {
+    #projectsTable thead th {
       position: relative;
       background-clip: padding-box;
       white-space: nowrap;
     }
 
-    #firmsTable thead tr#filtersRow th {
+    #projectsTable thead tr#filtersRow th {
       padding: .25rem .5rem;
       border-bottom: 0 !important;
     }
 
-    #firmsTable thead tr#headerRow th {
+    #projectsTable thead tr#headerRow th {
       padding-top: .25rem;
       padding-bottom: .4rem;
       border-bottom: 1px solid var(--bs-border-color) !important;
       vertical-align: bottom;
     }
 
-    #firmsTable thead .filter-cell>* {
+    #projectsTable thead .filter-cell>* {
       display: block;
       width: 100%;
       max-width: 100%;
       margin: 0;
     }
 
-    #firmsTable thead input.form-control-sm,
-    #firmsTable thead select.form-select-sm {
+    #projectsTable thead input.form-control-sm,
+    #projectsTable thead select.form-select-sm {
       min-height: 32px;
       line-height: 1.2;
     }
 
-    #firmsTable th.col-actions {
+    #projectsTable th.col-actions {
       padding-left: .25rem;
       padding-right: .25rem;
     }
 
-    #firmsTable th .col-resizer {
+    #projectsTable th .col-resizer {
       position: absolute;
       top: 0;
       right: 0;
@@ -215,8 +187,8 @@ ob_start();
       -webkit-user-select: none;
     }
 
-    #firmsTable th.resizing,
-    #firmsTable th .col-resizer.active {
+    #projectsTable th.resizing,
+    #projectsTable th .col-resizer.active {
       background-image: linear-gradient(to bottom, rgba(45, 108, 223, .15), rgba(45, 108, 223, .15));
       background-repeat: no-repeat;
       background-position: right center;
@@ -242,24 +214,24 @@ ob_start();
       font-size: 14px;
     }
 
-    #firmsTable td .btn-group {
+    #projectsTable td .btn-group {
       gap: 4px;
     }
 
-    #firmsTable td .btn-group .btn {
+    #projectsTable td .btn-group .btn {
       border-width: 1px;
     }
 
-    #firmsTable thead th.sortable {
+    #projectsTable thead th.sortable {
       cursor: pointer;
     }
 
-    #firmsTable thead th.sortable[data-sort="asc"]::after {
+    #projectsTable thead th.sortable[data-sort="asc"]::after {
       content: " ↑";
       opacity: .6;
     }
 
-    #firmsTable thead th.sortable[data-sort="desc"]::after {
+    #projectsTable thead th.sortable[data-sort="desc"]::after {
       content: " ↓";
       opacity: .6;
     }
@@ -293,8 +265,9 @@ ob_start();
   <script>
     (function() {
 
-      const DATA = <?= $firmsJson ?: '[]'; ?>;
+      const DATA = <?= $projectsJson ?: '[]'; ?>;
 
+      // Proje alanları
       const allFields = [{
           id: 'id',
           label: 'ID'
@@ -324,44 +297,44 @@ ob_start();
           label: 'Kısa Ad'
         },
         {
-          id: 'legal_type',
-          label: 'Hukuki Tip'
+          id: 'project_path',
+          label: 'Path'
         },
         {
-          id: 'registration_no',
-          label: 'Sicil No'
+          id: 'company_id',
+          label: 'Firma ID'
         },
         {
-          id: 'mersis_no',
-          label: 'MERSİS No'
+          id: 'start_date',
+          label: 'Başlangıç'
         },
         {
-          id: 'tax_office',
-          label: 'Vergi Dairesi'
+          id: 'end_date',
+          label: 'Bitiş'
         },
         {
-          id: 'tax_number',
-          label: 'Vergi No'
+          id: 'budget',
+          label: 'Bütçe'
         },
         {
-          id: 'email',
-          label: 'E-posta'
+          id: 'status',
+          label: 'Durum'
         },
         {
-          id: 'phone',
-          label: 'Telefon'
+          id: 'currency_code',
+          label: 'Para Birimi'
         },
         {
-          id: 'secondary_phone',
-          label: 'İkinci Telefon'
+          id: 'timezone',
+          label: 'Zaman Dilimi'
         },
         {
-          id: 'fax',
-          label: 'Faks'
+          id: 'image_url',
+          label: 'Görsel URL'
         },
         {
-          id: 'website',
-          label: 'Web Sitesi'
+          id: 'notes',
+          label: 'Notlar'
         },
         {
           id: 'address_line1',
@@ -386,46 +359,6 @@ ob_start();
         {
           id: 'country_code',
           label: 'Ülke (ISO-2)'
-        },
-        {
-          id: 'latitude',
-          label: 'Enlem'
-        },
-        {
-          id: 'longitude',
-          label: 'Boylam'
-        },
-        {
-          id: 'industry',
-          label: 'Sektör'
-        },
-        {
-          id: 'status',
-          label: 'Durum'
-        },
-        {
-          id: 'currency_code',
-          label: 'Para Birimi'
-        },
-        {
-          id: 'timezone',
-          label: 'Zaman Dilimi'
-        },
-        {
-          id: 'vat_exempt',
-          label: 'KDV Muaf'
-        },
-        {
-          id: 'e_invoice_enabled',
-          label: 'E-Fatura'
-        },
-        {
-          id: 'logo_url',
-          label: 'Logo'
-        },
-        {
-          id: 'notes',
-          label: 'Notlar'
         },
         {
           id: 'is_active',
@@ -469,53 +402,54 @@ ob_start();
           filterType: 'text'
         },
         {
-          id: 'legal_type',
-          label: 'Hukuki Tip',
+          id: 'project_path',
+          label: 'Path',
           filterType: 'text'
         },
         {
-          id: 'registration_no',
-          label: 'Sicil No',
+          id: 'company_id',
+          label: 'Firma ID',
           filterType: 'text'
         },
         {
-          id: 'mersis_no',
-          label: 'MERSİS No',
+          id: 'start_date',
+          label: 'Başlangıç',
+          filterType: 'date'
+        },
+        {
+          id: 'end_date',
+          label: 'Bitiş',
+          filterType: 'date'
+        },
+        {
+          id: 'budget',
+          label: 'Bütçe',
+          filterType: 'text',
+          className: 'text-end'
+        },
+        {
+          id: 'status',
+          label: 'Durum',
           filterType: 'text'
         },
         {
-          id: 'tax_office',
-          label: 'Vergi Dairesi',
+          id: 'currency_code',
+          label: 'Para Birimi',
           filterType: 'text'
         },
         {
-          id: 'tax_number',
-          label: 'Vergi No',
+          id: 'timezone',
+          label: 'Zaman Dilimi',
           filterType: 'text'
         },
         {
-          id: 'email',
-          label: 'E-posta',
+          id: 'image_url',
+          label: 'Görsel URL',
           filterType: 'text'
         },
         {
-          id: 'phone',
-          label: 'Telefon',
-          filterType: 'text'
-        },
-        {
-          id: 'secondary_phone',
-          label: 'İkinci Telefon',
-          filterType: 'text'
-        },
-        {
-          id: 'fax',
-          label: 'Faks',
-          filterType: 'text'
-        },
-        {
-          id: 'website',
-          label: 'Web Sitesi',
+          id: 'notes',
+          label: 'Notlar',
           filterType: 'text'
         },
         {
@@ -546,56 +480,6 @@ ob_start();
         {
           id: 'country_code',
           label: 'Ülke (ISO-2)',
-          filterType: 'text'
-        },
-        {
-          id: 'latitude',
-          label: 'Enlem',
-          filterType: 'text'
-        },
-        {
-          id: 'longitude',
-          label: 'Boylam',
-          filterType: 'text'
-        },
-        {
-          id: 'industry',
-          label: 'Sektör',
-          filterType: 'text'
-        },
-        {
-          id: 'status',
-          label: 'Durum',
-          filterType: 'text'
-        },
-        {
-          id: 'currency_code',
-          label: 'Para Birimi',
-          filterType: 'text'
-        },
-        {
-          id: 'timezone',
-          label: 'Zaman Dilimi',
-          filterType: 'text'
-        },
-        {
-          id: 'vat_exempt',
-          label: 'KDV Muaf',
-          filterType: 'boolean'
-        },
-        {
-          id: 'e_invoice_enabled',
-          label: 'E-Fatura',
-          filterType: 'boolean'
-        },
-        {
-          id: 'logo_url',
-          label: 'Logo',
-          filterType: 'text'
-        },
-        {
-          id: 'notes',
-          label: 'Notlar',
           filterType: 'text'
         },
         {
@@ -630,19 +514,19 @@ ob_start();
         },
       ];
 
-      const defaultVisible = ['actions', 'id', 'name', 'email', 'phone', 'status', 'is_active'];
+      const defaultVisible = ['actions', 'id', 'name', 'company_id', 'status', 'start_date', 'end_date', 'is_active'];
 
       const LS_KEYS = {
-        visibleCols: 'firms.visibleCols',
-        filters: 'firms.filters',
-        sort: 'firms.sort',
-        widths: 'firms.widths',
-        page: 'firms.page',
-        limit: 'firms.limit'
+        visibleCols: 'projects.visibleCols',
+        filters: 'projects.filters',
+        sort: 'projects.sort',
+        widths: 'projects.widths',
+        page: 'projects.page',
+        limit: 'projects.limit'
       };
 
       // DOM
-      const table = document.getElementById('firmsTable');
+      const table = document.getElementById('projectsTable');
       const thead = document.getElementById('tableHead');
       const tbody = document.getElementById('tableBody');
       const headerRow = document.getElementById('headerRow');
@@ -730,20 +614,19 @@ ob_start();
           const csrf = metaCsrf || formCsrf;
           if (csrf) headers['X-CSRF-TOKEN'] = csrf;
 
-          // FormData ile gönderelim (backend form bekliyorsa)
+          // FormData ile gönder
           const formData = new FormData();
           if (formCsrf) formData.append('_token', formCsrf);
           formData.append('payload', val);
 
           try {
-            const resp = await fetch(uploadForm.getAttribute('action') || '/firms/bulk-upload', {
+            const resp = await fetch(uploadForm.getAttribute('action') || '/projects/bulk-upload', {
               method: 'POST',
-              headers, // FormData kullanınca Content-Type otomatik ayarlanır, elle koymayın
+              headers,
               body: formData,
               credentials: 'same-origin'
             });
 
-            // JSON dönerse oku; dönmezse text oku
             const contentType = resp.headers.get('content-type') || '';
             const isJson = contentType.includes('application/json');
             const data = isJson ? await resp.json().catch(() => null) : await resp.text();
@@ -754,18 +637,11 @@ ob_start();
               return;
             }
 
-            // Başarılı
             alert('Yükleme başarılı.');
-            // Modal kapat
             const modalEl = document.getElementById('uploadModal');
-            const modal = bootstrap.Modal.getOrCreateInstance ?
-              bootstrap.Modal.getOrCreateInstance(modalEl) :
-              new bootstrap.Modal(modalEl);
+            const modal = bootstrap.Modal.getOrCreateInstance ? bootstrap.Modal.getOrCreateInstance(modalEl) : new bootstrap.Modal(modalEl);
             modal.hide();
-
-            // İsteğe bağlı: sayfayı yenileyin veya tabloyu güncelleyin
             // location.reload();
-
           } catch (err) {
             alert('İstek gönderilemedi: ' + (err?.message || err));
           }
@@ -1029,7 +905,6 @@ ob_start();
             render();
           }, 200));
         });
-
         filtersRow.querySelectorAll('select[data-kind="bool"]').forEach(sel => {
           sel.addEventListener('change', () => {
             const key = sel.dataset.key;
@@ -1041,7 +916,6 @@ ob_start();
             render();
           });
         });
-
         filtersRow.querySelectorAll('input[data-kind="from"], input[data-kind="to"]').forEach(inp => {
           inp.addEventListener('change', () => {
             const key = inp.dataset.key,
@@ -1148,7 +1022,7 @@ ob_start();
         return [...rows].sort((a, b) => {
           const avRaw = a[col.id];
           const bvRaw = b[col.id];
-          if (col.id === 'id') {
+          if (col.id === 'id' || col.id === 'budget') {
             const av = Number(avRaw ?? 0),
               bv = Number(bvRaw ?? 0);
             return (av < bv ? -1 : av > bv ? 1 : 0) * dir;
@@ -1199,10 +1073,10 @@ ob_start();
             if (col.isAction) {
               td.innerHTML = `
 <div class="btn-group" role="group" aria-label="İşlemler">
-  <a class="btn btn-light btn-icon" href="/firms/edit?id=${escapeAttr(String(r.id ?? r.uuid ?? ''))}" title="Düzenle">
+  <a class="btn btn-light btn-icon" href="/projects/edit?id=${escapeAttr(String(r.id ?? r.uuid ?? ''))}" title="Düzenle">
     <i class="bi bi-pencil"></i>
   </a>
-  <form method="post" action="/firms/delete" onsubmit="return confirm('Silinsin mi?')" style="display:inline;">
+  <form method="post" action="/projects/delete" onsubmit="return confirm('Silinsin mi?')" style="display:inline;">
     <input type="hidden" name="uuid" value="${escapeAttr(String(r.uuid ?? ''))}">
     <button class="btn btn-light btn-icon text-danger" type="submit" title="Sil">
       <i class="bi bi-trash"></i>
@@ -1210,17 +1084,14 @@ ob_start();
   </form>
 </div>
 `;
-            } else if (col.id === 'email') {
-              const email = String(r.email ?? '');
-              td.innerHTML = email ? `<a href="mailto:${escapeAttr(email)}" class="text-decoration-none">${escapeHtml(email)}</a>` : '';
-            } else if (col.id === 'website') {
-              const url = String(r.website ?? '');
+            } else if (col.id === 'image_url') {
+              const url = String(r.image_url ?? '');
               td.innerHTML = url ? `<a href="${escapeAttr(url)}" target="_blank" rel="noopener" class="truncate">${escapeHtml(url)}</a>` : '';
-            } else if (col.id === 'logo_url') {
-              const logoUrl = String(r.logo_url ?? '');
-              td.innerHTML = logoUrl ? `<img src="${escapeAttr(logoUrl)}" alt="Logo" style="max-height: 40px; max-width: 80px;" class="img-thumbnail">` : '';
-            } else if (['is_active', 'vat_exempt', 'e_invoice_enabled'].includes(col.id)) {
-              const raw = r[col.id];
+            } else if (col.id === 'budget') {
+              const raw = r.budget == null ? '' : String(r.budget);
+              td.textContent = raw;
+            } else if (col.id === 'is_active') {
+              const raw = r.is_active;
               const isTrue = typeof raw === 'boolean' ? raw : ['1', 'true', 'on', 'yes', 'evet'].includes(String(raw).toLowerCase());
               td.innerHTML = `<span class="badge ${isTrue ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-danger-subtle text-danger border border-danger-subtle'}">${isTrue}</span>`;
             } else {
@@ -1324,6 +1195,7 @@ ob_start();
           alert('Şablon için XLSX kütüphanesi yüklenemedi.\nDetay: ' + (e?.message || e));
           return;
         }
+
         const headers = allFields.map(c => c.id);
 
         const sample1 = {
@@ -1332,34 +1204,24 @@ ob_start();
           created_at: '',
           updated_at: '',
           deleted_at: '',
-          name: 'Acme A.Ş.',
-          short_name: 'ACME',
-          legal_type: 'AS',
-          registration_no: 'IST-123456',
-          mersis_no: '0123001230000012',
-          tax_office: 'Üsküdar VD',
-          tax_number: '1234567890',
-          email: 'info@acme.com',
-          phone: '02123334455',
-          secondary_phone: '',
-          fax: '',
-          website: 'https://www.acme.com',
-          address_line1: 'Mah. Cad. No:1',
-          address_line2: 'Kat 2',
-          city: 'İstanbul',
-          state_region: 'Üsküdar',
-          postal_code: '34660',
-          country_code: 'TR',
-          latitude: '41.025',
-          longitude: '29.02',
-          industry: 'Manufacturing',
+          name: 'Yeni CRM Projesi',
+          short_name: 'CRM',
+          project_path: '/var/www/crm',
+          company_id: '1',
+          start_date: '2025-01-01',
+          end_date: '2025-06-30',
+          budget: '250000',
           status: 'active',
           currency_code: 'TRY',
           timezone: 'Europe/Istanbul',
-          vat_exempt: 'false',
-          e_invoice_enabled: 'true',
-          logo_url: '',
+          image_url: '',
           notes: 'Örnek not',
+          address_line1: 'Adres satırı 1',
+          address_line2: '',
+          city: 'İstanbul',
+          state_region: 'Kadıköy',
+          postal_code: '34710',
+          country_code: 'TR',
           is_active: 'true',
           created_by: '',
           updated_by: ''
@@ -1370,35 +1232,25 @@ ob_start();
           created_at: '',
           updated_at: '',
           deleted_at: '',
-          name: 'Beta Ltd.',
-          short_name: 'BETA',
-          legal_type: 'LTD',
-          registration_no: 'ANK-987654',
-          mersis_no: '',
-          tax_office: 'Çankaya VD',
-          tax_number: '9988776655',
-          email: 'iletisim@beta.com',
-          phone: '03124567890',
-          secondary_phone: '',
-          fax: '',
-          website: 'http://beta.com',
-          address_line1: 'Sokak 10',
-          address_line2: '',
+          name: 'E-ticaret Uygulaması',
+          short_name: 'SHOP',
+          project_path: '/srv/shop',
+          company_id: '2',
+          start_date: '2025-02-15',
+          end_date: '2025-10-15',
+          budget: '500000',
+          status: 'planned',
+          currency_code: 'USD',
+          timezone: 'Europe/Istanbul',
+          image_url: 'https://example.com/banner.png',
+          notes: '',
+          address_line1: 'Adres 1',
+          address_line2: 'Adres 2',
           city: 'Ankara',
           state_region: 'Çankaya',
           postal_code: '06680',
           country_code: 'TR',
-          latitude: '',
-          longitude: '',
-          industry: 'IT Services',
-          status: 'prospect',
-          currency_code: 'TRY',
-          timezone: 'Europe/Istanbul',
-          vat_exempt: 'true',
-          e_invoice_enabled: 'false',
-          logo_url: '',
-          notes: '',
-          is_active: 'false',
+          is_active: 'true',
           created_by: '',
           updated_by: ''
         };
@@ -1416,8 +1268,8 @@ ob_start();
 
         const wsInfo = XLSX.utils.aoa_to_sheet([
           ['Kılavuz'],
-          ['status: active | prospect | lead | suspended | inactive'],
-          ['boolean: true | false (is_active, vat_exempt, e_invoice_enabled)'],
+          ['status: active | planned | in_progress | on_hold | completed | cancelled'],
+          ['boolean: true | false (is_active)'],
           ['created_at/updated_at/deleted_at: ISO datetime (opsiyonel)'],
           ['country_code: ISO-2 (TR, US, vb.)'],
           ['Not: Data sheet’teki başlıkları değiştirmeyin.']
@@ -1426,10 +1278,11 @@ ob_start();
         const wsDict = XLSX.utils.aoa_to_sheet([
           ['status'],
           ['active'],
-          ['prospect'],
-          ['lead'],
-          ['suspended'],
-          ['inactive']
+          ['planned'],
+          ['in_progress'],
+          ['on_hold'],
+          ['completed'],
+          ['cancelled']
         ]);
 
         const wb = XLSX.utils.book_new();
@@ -1437,7 +1290,7 @@ ob_start();
         XLSX.utils.book_append_sheet(wb, wsInfo, 'Açıklamalar');
         XLSX.utils.book_append_sheet(wb, wsDict, 'Sözlükler');
 
-        XLSX.writeFile(wb, 'firms_template_full.xlsx', {
+        XLSX.writeFile(wb, 'projects_template_full.xlsx', {
           compression: true
         });
       }
@@ -1461,9 +1314,9 @@ ob_start();
         }));
 
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, 'Firms');
+        XLSX.utils.book_append_sheet(wb, ws, 'Projects');
 
-        XLSX.writeFile(wb, 'firms_full_export.xlsx', {
+        XLSX.writeFile(wb, 'projects_full_export.xlsx', {
           compression: true
         });
       }
@@ -1500,9 +1353,7 @@ ob_start();
           });
 
           const modalEl = document.getElementById('uploadModal');
-          const modal = bootstrap.Modal.getOrCreateInstance ?
-            bootstrap.Modal.getOrCreateInstance(modalEl) :
-            new bootstrap.Modal(modalEl);
+          const modal = bootstrap.Modal.getOrCreateInstance ? bootstrap.Modal.getOrCreateInstance(modalEl) : new bootstrap.Modal(modalEl);
           modal.show();
 
           input.value = '';
@@ -1531,8 +1382,8 @@ ob_start();
 </div>
 <div class="mt-2 small text-secondary">
   Beklenen başlıklar: ${escapeHtml(allFields.map(f=>f.id).join(', '))}.
-  • status: active|prospect|lead|suspended|inactive
-  • boolean: true|false (is_active, vat_exempt, e_invoice_enabled)
+  • status: active | planned | in_progress | on_hold | completed | cancelled
+  • boolean: true | false (is_active)
   • created_at/updated_at/deleted_at: ISO datetime (opsiyonel)
   • country_code: ISO-2 (TR, US, vb.)
 </div>
@@ -1540,14 +1391,6 @@ ob_start();
         return {
           html
         };
-      }
-
-      function triggerDownload(blob, filename) {
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = filename;
-        a.click();
-        setTimeout(() => URL.revokeObjectURL(a.href), 1000);
       }
 
       function escapeHtml(str) {
@@ -1578,8 +1421,7 @@ ob_start();
           if (obj.limit) url.searchParams.set('limit', String(obj.limit));
           window.history.replaceState({}, '', url.toString());
         } catch {
-          /* no-op */
-        }
+          /* no-op */ }
       }
 
     })();
@@ -1590,7 +1432,7 @@ ob_start();
 <?php else: ?>
 
   <div class="alert alert-light border d-flex align-items-center" role="alert">
-    <i class="bi bi-inboxes me-2"></i> Hiç firma yok.
+    <i class="bi bi-inboxes me-2"></i> Hiç proje yok.
   </div>
 
 <?php endif; ?>

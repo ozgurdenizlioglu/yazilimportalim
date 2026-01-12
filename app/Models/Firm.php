@@ -36,7 +36,7 @@ class Firm
     // Benzersiz alan kontrolü
     public static function existsByUnique(PDO $pdo, string $field, string $value, ?int $excludeId = null): bool
     {
-        $allowed = ['registration_no','mersis_no','tax_number'];
+        $allowed = ['registration_no', 'mersis_no', 'tax_number'];
         if (!in_array($field, $allowed, true)) {
             throw new \InvalidArgumentException("Geçersiz alan: $field");
         }
@@ -95,6 +95,7 @@ class Firm
 
         $vatExempt = self::toBool($d['vat_exempt'] ?? false);
         $eInvoice  = self::toBool($d['e_invoice_enabled'] ?? false);
+        $contractor = self::toBool($d['contractor'] ?? false);
         $logoUrl = self::nullIfEmpty($d['logo_url'] ?? null);
         $notes = self::nullIfEmpty($d['notes'] ?? null);
         $isActive = self::toBool($d['is_active'] ?? true);
@@ -108,7 +109,7 @@ class Firm
             address_line1, address_line2, city, state_region, postal_code, country_code,
             latitude, longitude,
             industry, status, currency_code, timezone,
-            vat_exempt, e_invoice_enabled, logo_url, notes,
+            vat_exempt, e_invoice_enabled, contractor, logo_url, notes,
             is_active, created_by, updated_by
         ) VALUES (
             :name, :short_name, :legal_type, :registration_no, :mersis_no, :tax_office, :tax_number,
@@ -116,7 +117,7 @@ class Firm
             :address_line1, :address_line2, :city, :state_region, :postal_code, :country_code,
             :latitude, :longitude,
             :industry, :status, :currency_code, :timezone,
-            :vat_exempt, :e_invoice_enabled, :logo_url, :notes,
+            :vat_exempt, :e_invoice_enabled, :contractor, :logo_url, :notes,
             :is_active, :created_by, :updated_by
         ) RETURNING id";
 
@@ -149,6 +150,7 @@ class Firm
         $stmt->bindValue(':timezone', $timezone);
         $stmt->bindValue(':vat_exempt', $vatExempt, PDO::PARAM_BOOL);
         $stmt->bindValue(':e_invoice_enabled', $eInvoice, PDO::PARAM_BOOL);
+        $stmt->bindValue(':contractor', $contractor, PDO::PARAM_BOOL);
         $stmt->bindValue(':logo_url', $logoUrl);
         $stmt->bindValue(':notes', $notes);
         $stmt->bindValue(':is_active', $isActive, PDO::PARAM_BOOL);
@@ -198,6 +200,7 @@ class Firm
 
         $vatExempt = self::toBool($d['vat_exempt'] ?? false);
         $eInvoice  = self::toBool($d['e_invoice_enabled'] ?? false);
+        $contractor = self::toBool($d['contractor'] ?? false);
         $logoUrl = self::nullIfEmpty($d['logo_url'] ?? null);
         $notes = self::nullIfEmpty($d['notes'] ?? null);
         $isActive = self::toBool($d['is_active'] ?? true);
@@ -231,6 +234,7 @@ class Firm
             timezone = :timezone,
             vat_exempt = :vat_exempt,
             e_invoice_enabled = :e_invoice_enabled,
+            contractor = :contractor,
             logo_url = :logo_url,
             notes = :notes,
             is_active = :is_active,
@@ -266,6 +270,7 @@ class Firm
         $stmt->bindValue(':timezone', $timezone);
         $stmt->bindValue(':vat_exempt', $vatExempt, PDO::PARAM_BOOL);
         $stmt->bindValue(':e_invoice_enabled', $eInvoice, PDO::PARAM_BOOL);
+        $stmt->bindValue(':contractor', $contractor, PDO::PARAM_BOOL);
         $stmt->bindValue(':logo_url', $logoUrl);
         $stmt->bindValue(':notes', $notes);
         $stmt->bindValue(':is_active', $isActive, PDO::PARAM_BOOL);
