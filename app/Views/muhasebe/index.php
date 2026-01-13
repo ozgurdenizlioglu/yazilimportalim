@@ -6,62 +6,489 @@ use App\Core\Helpers;
 
 <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-3">
     <h1 class="h4 m-0"><?= Helpers::e($title ?? 'Muhasebe') ?></h1>
-    <a class="btn btn-primary" href="/muhasebe/create"><i class="bi bi-plus-lg me-1"></i>Yeni Kayıt</a>
+    <div class="d-flex flex-wrap gap-2">
+        <a class="btn btn-primary" href="/muhasebe/create"><i class="bi bi-plus-lg me-1"></i>Yeni Kayıt</a>
+        <button class="btn btn-outline-secondary" type="button" id="toggleColumnPanel"><i class="bi bi-columns-gap me-1"></i>Kolonları Yönet</button>
+        <button class="btn btn-outline-secondary" type="button" id="resetView"><i class="bi bi-arrow-counterclockwise me-1"></i>Görünümü Sıfırla</button>
+    </div>
 </div>
 
-<?php if (!empty($records)): ?>
-    <div class="card shadow-sm">
-        <div class="card-body p-0">
+<?php $recordsJson = json_encode($records ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>
+
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-wrap p-2 pt-0">
+
+            <div id="columnPanel" class="column-panel card card-body py-2 mb-2" hidden>
+                <div class="d-flex align-items-center justify-content-between">
+                    <strong>Görünen Kolonlar</strong>
+                    <div class="d-flex align-items-center gap-2">
+                        <label class="form-label m-0 small text-muted" for="pageSizeSelect">Bir sayfada</label>
+                        <select id="pageSizeSelect" class="form-select form-select-sm" style="width:auto;">
+                            <option value="20">20 satır</option>
+                            <option value="50">50 satır</option>
+                            <option value="100">100 satır</option>
+                            <option value="200">200 satır</option>
+                            <option value="500">500 satır</option>
+                        </select>
+                    </div>
+                </div>
+                <hr class="my-2">
+                <div id="columnCheckboxes" class="columns-grid"></div>
+            </div>
+
             <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="table-light">
-                        <tr>
-                            <th style="width: 50px;">ID</th>
-                            <th>Proje</th>
-                            <th>Tahakkuk Tarihi</th>
-                            <th>Vade Tarihi</th>
-                            <th>Çek No</th>
-                            <th>Açıklama</th>
-                            <th>Tutar (TRY)</th>
-                            <th>USD Karşılığı</th>
-                            <th>Cari Hesap</th>
-                            <th style="width: 120px;">İşlemler</th>
-                        </tr>
+                <table class="table table-hover align-middle mb-0" id="muhasebeTable">
+                    <colgroup id="colGroup"></colgroup>
+                    <thead id="tableHead">
+                        <tr id="filtersRow"></tr>
+                        <tr id="headerRow"></tr>
                     </thead>
-                    <tbody>
-                        <?php foreach ($records as $record): ?>
-                            <tr>
-                                <td><?= Helpers::e($record['id']) ?></td>
-                                <td><?= Helpers::e($record['proje']) ?></td>
-                                <td><?= $record['tahakkuk_tarihi'] ? date('d.m.Y', strtotime($record['tahakkuk_tarihi'])) : '-' ?></td>
-                                <td><?= $record['vade_tarihi'] ? date('d.m.Y', strtotime($record['vade_tarihi'])) : '-' ?></td>
-                                <td><?= Helpers::e($record['cek_no']) ?></td>
-                                <td><?= Helpers::e($record['aciklama']) ?></td>
-                                <td class="text-end"><?= $record['tutar_try'] ? number_format($record['tutar_try'], 2, ',', '.') : '-' ?></td>
-                                <td class="text-end"><?= $record['usd_karsiligi'] ? number_format($record['usd_karsiligi'], 2, ',', '.') : '-' ?></td>
-                                <td><?= Helpers::e($record['cari_hesap_ismi']) ?></td>
-                                <td>
-                                    <a href="/muhasebe/edit?id=<?= $record['id'] ?>" class="btn btn-sm btn-warning" title="Düzenle">
-                                        <i class="bi bi-pencil"></i>
-                                    </a>
-                                    <button class="btn btn-sm btn-danger" onclick="deleteRecord(<?= $record['id'] ?>)" title="Sil">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    </tbody>
+                    <tbody id="tableBody"></tbody>
                 </table>
             </div>
-        </div>
+
+        </div><!-- table-wrap -->
+    </div><!-- card-body -->
+
+    <div class="card-footer d-flex flex-wrap gap-2 align-items-center">
+        <div class="text-muted small" id="footerStats">Toplam: <strong>0</strong> | Sayfa: 1/1</div>
+        <div class="ms-auto"></div>
+        <nav>
+            <ul class="pagination mb-0" id="pager">
+                <li class="page-item"><a class="page-link" href="#" data-page="first">« İlk</a></li>
+                <li class="page-item"><a class="page-link" href="#" data-page="prev">‹ Önceki</a></li>
+                <li class="page-item disabled"><span class="page-link" id="pageIndicator">1 / 1</span></li>
+                <li class="page-item"><a class="page-link" href="#" data-page="next">Sonraki ›</a></li>
+                <li class="page-item"><a class="page-link" href="#" data-page="last">Son »</a></li>
+            </ul>
+        </nav>
     </div>
-<?php else: ?>
-    <div class="alert alert-info" role="alert">
-        <i class="bi bi-info-circle me-2"></i>Henüz kayıt bulunmamaktadır. <a href="/muhasebe/create" class="alert-link">Yeni kayıt ekleyin</a>
-    </div>
-<?php endif; ?>
+</div><!-- card -->
+
+<style>
+    .columns-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(180px, 1fr));
+        gap: .35rem .75rem;
+    }
+
+    @media (min-width: 576px) {
+        .columns-grid {
+            grid-template-columns: repeat(3, minmax(180px, 1fr));
+        }
+    }
+
+    @media (min-width: 768px) {
+        .columns-grid {
+            grid-template-columns: repeat(4, minmax(180px, 1fr));
+        }
+    }
+
+    @media (min-width: 992px) {
+        .columns-grid {
+            grid-template-columns: repeat(5, minmax(180px, 1fr));
+        }
+    }
+
+    @media (min-width: 1200px) {
+        .columns-grid {
+            grid-template-columns: repeat(6, minmax(180px, 1fr));
+        }
+    }
+
+    #muhasebeTable {
+        table-layout: auto;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+    #muhasebeTable thead {
+        vertical-align: bottom;
+    }
+
+    #muhasebeTable thead th {
+        position: relative;
+        background-clip: padding-box;
+        white-space: nowrap;
+    }
+
+    #muhasebeTable thead tr#filtersRow th {
+        padding: .25rem .5rem;
+        border-bottom: 0 !important;
+    }
+
+    #muhasebeTable thead tr#headerRow th {
+        padding-top: .25rem;
+        padding-bottom: .4rem;
+        border-bottom: 1px solid var(--bs-border-color) !important;
+        vertical-align: bottom;
+    }
+
+    #muhasebeTable thead .filter-cell>* {
+        display: block;
+        width: 100%;
+        max-width: 100%;
+        margin: 0;
+    }
+
+    #muhasebeTable thead input.form-control-sm,
+    #muhasebeTable thead select.form-select-sm {
+        min-height: 32px;
+        line-height: 1.2;
+    }
+
+    #muhasebeTable th.col-actions {
+        padding-left: .25rem;
+        padding-right: .25rem;
+    }
+
+    #muhasebeTable th .col-resizer {
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 10px;
+        height: 100%;
+        cursor: col-resize;
+        user-select: none;
+        -webkit-user-select: none;
+    }
+
+    #muhasebeTable th.resizing,
+    #muhasebeTable th .col-resizer.active {
+        background-image: linear-gradient(to bottom, rgba(45, 108, 223, .15), rgba(45, 108, 223, .15));
+        background-repeat: no-repeat;
+        background-position: right center;
+        background-size: 2px 100%;
+    }
+
+    .btn-icon {
+        --btn-size: 28px;
+        width: var(--btn-size);
+        height: var(--btn-size);
+        padding: 0 !important;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: .25rem;
+    }
+
+    .btn-icon.btn-light {
+        border: 1px solid var(--bs-border-color);
+    }
+
+    .btn-icon i {
+        font-size: 14px;
+    }
+
+    #muhasebeTable td .btn-group {
+        gap: 4px;
+    }
+
+    #muhasebeTable td .btn-group .btn {
+        border-width: 1px;
+    }
+
+    #muhasebeTable thead th.sortable {
+        cursor: pointer;
+    }
+
+    #muhasebeTable thead th.sortable[data-sort="asc"]::after {
+        content: " ↑";
+        opacity: .6;
+    }
+
+    #muhasebeTable thead th.sortable[data-sort="desc"]::after {
+        content: " ↓";
+        opacity: .6;
+    }
+
+    .truncate {
+        max-width: 240px;
+        display: inline-block;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        vertical-align: bottom;
+    }
+</style>
 
 <script>
+    (function() {
+        const DATA = <?= $recordsJson ?: '[]'; ?>;
+
+        const allFields = [{
+                id: 'id',
+                label: 'ID'
+            },
+            {
+                id: 'proje',
+                label: 'Proje'
+            },
+            {
+                id: 'tahakkuk_tarihi',
+                label: 'Tahakkuk Tarihi'
+            },
+            {
+                id: 'vade_tarihi',
+                label: 'Vade Tarihi'
+            },
+            {
+                id: 'cek_no',
+                label: 'Çek No'
+            },
+            {
+                id: 'aciklama',
+                label: 'Açıklama'
+            },
+            {
+                id: 'aciklama2',
+                label: 'Açıklama 2'
+            },
+            {
+                id: 'aciklama3',
+                label: 'Açıklama 3'
+            },
+            {
+                id: 'tutar_try',
+                label: 'Tutar (TRY)'
+            },
+            {
+                id: 'cari_hesap_ismi',
+                label: 'Cari Hesap'
+            },
+            {
+                id: 'wb',
+                label: 'WB'
+            },
+            {
+                id: 'ws',
+                label: 'WS'
+            },
+            {
+                id: 'row_col',
+                label: 'Row'
+            },
+            {
+                id: 'cost_code',
+                label: 'Cost Code'
+            },
+            {
+                id: 'dikkate_alinmayacaklar',
+                label: 'Dikkate Alınmayacaklar'
+            },
+            {
+                id: 'usd_karsiligi',
+                label: 'USD Karşılığı'
+            },
+            {
+                id: 'id_text',
+                label: 'ID (Text)'
+            },
+            {
+                id: 'id_veriler',
+                label: 'ID Veriler'
+            },
+            {
+                id: 'id_odeme_plan_satinalma_odeme_onay_listesi',
+                label: 'ID Ödeme Plan'
+            },
+            {
+                id: 'not_field',
+                label: 'Not'
+            },
+            {
+                id: 'not_ool_odeme_plani',
+                label: 'Not OOL/Ödeme'
+            }
+        ];
+
+        const defaultVisibleFields = ['id', 'proje', 'tahakkuk_tarihi', 'vade_tarihi', 'tutar_try', 'usd_karsiligi', 'cari_hesap_ismi', 'aciklama'];
+        const pageSize = parseInt(localStorage.getItem('muhasebe_pageSize')) || 20;
+
+        let visibleFields = JSON.parse(localStorage.getItem('muhasebe_visibleFields')) || defaultVisibleFields;
+        let currentPage = 1;
+        let sortField = null;
+        let sortDir = 'asc';
+        let filters = {};
+
+        function renderTable() {
+            const headerRow = document.getElementById('headerRow');
+            const filtersRow = document.getElementById('filtersRow');
+            const tableBody = document.getElementById('tableBody');
+            const colGroup = document.getElementById('colGroup');
+            const footerStats = document.getElementById('footerStats');
+            const pageIndicator = document.getElementById('pageIndicator');
+
+            headerRow.innerHTML = '';
+            filtersRow.innerHTML = '';
+            tableBody.innerHTML = '';
+            colGroup.innerHTML = '';
+
+            let filtered = DATA.filter(record => {
+                for (let field in filters) {
+                    const value = String(record[field] || '').toLowerCase();
+                    const filter = String(filters[field] || '').toLowerCase();
+                    if (!value.includes(filter)) return false;
+                }
+                return true;
+            });
+
+            if (sortField) {
+                filtered.sort((a, b) => {
+                    const aVal = a[sortField] || '';
+                    const bVal = b[sortField] || '';
+                    if (aVal < bVal) return sortDir === 'asc' ? -1 : 1;
+                    if (aVal > bVal) return sortDir === 'asc' ? 1 : -1;
+                    return 0;
+                });
+            }
+
+            const total = filtered.length;
+            const totalPages = Math.max(1, Math.ceil(total / pageSize));
+            const start = (currentPage - 1) * pageSize;
+            const paged = filtered.slice(start, start + pageSize);
+
+            visibleFields.forEach(fieldId => {
+                const col = document.createElement('col');
+                colGroup.appendChild(col);
+            });
+
+            visibleFields.forEach(fieldId => {
+                const field = allFields.find(f => f.id === fieldId);
+                const th = document.createElement('th');
+                th.className = 'sortable';
+                th.setAttribute('data-field', fieldId);
+                if (sortField === fieldId) th.setAttribute('data-sort', sortDir);
+                th.textContent = field ? field.label : fieldId;
+                th.onclick = () => {
+                    sortField = sortField === fieldId && sortDir === 'asc' ? fieldId : fieldId;
+                    sortDir = sortField === fieldId && sortDir === 'asc' ? 'desc' : 'asc';
+                    currentPage = 1;
+                    renderTable();
+                };
+                headerRow.appendChild(th);
+            });
+
+            visibleFields.forEach(fieldId => {
+                const th = document.createElement('th');
+                th.className = 'filter-cell';
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.className = 'form-control form-control-sm';
+                input.placeholder = 'Ara...';
+                input.value = filters[fieldId] || '';
+                input.onchange = () => {
+                    filters[fieldId] = input.value;
+                    currentPage = 1;
+                    renderTable();
+                };
+                th.appendChild(input);
+                filtersRow.appendChild(th);
+            });
+
+            paged.forEach(record => {
+                const tr = document.createElement('tr');
+                visibleFields.forEach(fieldId => {
+                    const td = document.createElement('td');
+                    const value = record[fieldId];
+
+                    if (['tahakkuk_tarihi', 'vade_tarihi'].includes(fieldId) && value) {
+                        td.textContent = new Date(value).toLocaleDateString('tr-TR');
+                    } else if (['tutar_try', 'usd_karsiligi'].includes(fieldId) && value) {
+                        td.textContent = parseFloat(value).toLocaleString('tr-TR', {
+                            minimumFractionDigits: 2
+                        });
+                        td.className = 'text-end';
+                    } else {
+                        td.textContent = value ? String(value).substring(0, 50) : '-';
+                    }
+                    tr.appendChild(td);
+                });
+
+                const actionsCell = document.createElement('td');
+                actionsCell.innerHTML = `
+                    <a href="/muhasebe/edit?id=${record.id}" class="btn btn-sm btn-warning btn-icon" title="Düzenle">
+                        <i class="bi bi-pencil"></i>
+                    </a>
+                    <button class="btn btn-sm btn-danger btn-icon" onclick="deleteRecord(${record.id})" title="Sil">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                `;
+                tr.appendChild(actionsCell);
+                tableBody.appendChild(tr);
+            });
+
+            footerStats.innerHTML = `Toplam: <strong>${total}</strong> | Sayfa: ${currentPage}/${totalPages}`;
+            pageIndicator.textContent = `${currentPage} / ${totalPages}`;
+
+            document.querySelectorAll('#pager a').forEach(link => {
+                link.onclick = (e) => {
+                    e.preventDefault();
+                    const page = link.dataset.page;
+                    if (page === 'first') currentPage = 1;
+                    else if (page === 'prev') currentPage = Math.max(1, currentPage - 1);
+                    else if (page === 'next') currentPage = Math.min(totalPages, currentPage + 1);
+                    else if (page === 'last') currentPage = totalPages;
+                    renderTable();
+                };
+            });
+        }
+
+        const columnPanel = document.getElementById('columnPanel');
+        const toggleButton = document.getElementById('toggleColumnPanel');
+        const columnCheckboxes = document.getElementById('columnCheckboxes');
+        const pageSizeSelect = document.getElementById('pageSizeSelect');
+        const resetButton = document.getElementById('resetView');
+
+        toggleButton.onclick = () => {
+            columnPanel.hidden = !columnPanel.hidden;
+        };
+
+        pageSizeSelect.value = pageSize;
+        pageSizeSelect.onchange = () => {
+            localStorage.setItem('muhasebe_pageSize', pageSizeSelect.value);
+            currentPage = 1;
+            renderTable();
+        };
+
+        resetButton.onclick = () => {
+            localStorage.removeItem('muhasebe_visibleFields');
+            visibleFields = defaultVisibleFields;
+            filters = {};
+            sortField = null;
+            renderTable();
+            renderColumnCheckboxes();
+        };
+
+        function renderColumnCheckboxes() {
+            columnCheckboxes.innerHTML = '';
+            allFields.forEach(field => {
+                const label = document.createElement('label');
+                label.className = 'form-check-label';
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.className = 'form-check-input';
+                checkbox.checked = visibleFields.includes(field.id);
+                checkbox.onchange = () => {
+                    if (checkbox.checked) {
+                        visibleFields.push(field.id);
+                    } else {
+                        visibleFields = visibleFields.filter(f => f !== field.id);
+                    }
+                    localStorage.setItem('muhasebe_visibleFields', JSON.stringify(visibleFields));
+                    renderTable();
+                };
+                label.appendChild(checkbox);
+                label.appendChild(document.createTextNode(' ' + field.label));
+                columnCheckboxes.appendChild(label);
+            });
+        }
+
+        renderColumnCheckboxes();
+        renderTable();
+    })();
+
     function deleteRecord(id) {
         if (confirm('Bu kaydı silmek istediğinize emin misiniz?')) {
             const form = document.createElement('form');
