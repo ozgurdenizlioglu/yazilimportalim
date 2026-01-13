@@ -853,18 +853,18 @@ use App\Core\Helpers;
 
 <!-- Upload Modal -->
 <div class="modal fade" id="uploadModal" tabindex="-1" aria-labelledby="uploadModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl" style="display: flex; align-items: center; min-height: 100vh;">
-        <div class="modal-content" style="max-height: 90vh; display: flex; flex-direction: column;">
+    <div class="modal-dialog modal-xl" style="max-height: 95vh; display: flex; align-items: center;">
+        <div class="modal-content" style="max-height: 95vh; overflow: hidden; display: flex; flex-direction: column;">
             <div class="modal-header">
                 <h5 id="uploadModalLabel" class="modal-title">Yükleme Önizleme</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
             </div>
-            <div class="modal-body" style="flex: 1; overflow-y: auto; padding: 1rem; min-height: 300px;">
-                <div id="uploadPreview" class="upload-preview">
+            <div class="modal-body" style="flex: 1; overflow-y: scroll; overflow-x: hidden; padding: 0.5rem;">
+                <div id="uploadPreview" class="upload-preview" style="padding: 0.5rem;">
                     <p class="text-muted">Dosya seçildikten sonra önizleme burada görünecek...</p>
                 </div>
             </div>
-            <div class="modal-footer" style="flex-shrink: 0; border-top: 1px solid #dee2e6; padding: 1rem;">
+            <div class="modal-footer" style="flex-shrink: 0; border-top: 1px solid #dee2e6; padding: 0.75rem 1rem; background-color: #f8f9fa;">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
                 <button type="button" class="btn btn-primary" id="confirmUploadBtn">Onayla ve Yükle</button>
             </div>
