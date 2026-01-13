@@ -853,13 +853,13 @@ use App\Core\Helpers;
 
 <!-- Upload Modal -->
 <div class="modal fade" id="uploadModal" tabindex="-1" aria-labelledby="uploadModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl" style="max-height: 90vh; display: flex; flex-direction: column;">
-        <div class="modal-content" style="display: flex; flex-direction: column; overflow: hidden;">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
             <div class="modal-header">
                 <h5 id="uploadModalLabel" class="modal-title">Yükleme Önizleme</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
             </div>
-            <div class="modal-body" style="flex: 1; overflow-y: auto; min-height: 0;">
+            <div class="modal-body" style="max-height: calc(100vh - 200px); overflow-y: auto;">
                 <div id="uploadPreview" class="upload-preview">
                     <p class="text-muted">Dosya seçildikten sonra önizleme burada görünecek...</p>
                 </div>
