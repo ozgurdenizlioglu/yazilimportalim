@@ -728,29 +728,47 @@ use App\Core\Helpers;
 
         try {
             let rows;
-            if (name.endsWith('.xlsx') || name.endsWith('.xls')) rows = await readXlsx(file);
-            else throw new Error('Sadece .xlsx, .xls dosyaları desteklenir.');
+            if (name.endsWith('.xlsx') || name.endsWith('.xls')) {
+                rows = await readXlsx(file);
+            } else {
+                throw new Error('Sadece .xlsx, .xls dosyaları desteklenir.');
+            }
 
             if (!rows || rows.length === 0) throw new Error('Boş dosya veya okunamadı.');
 
             const preview = buildPreviewTable(rows);
+            
+            // Get elements with null safety
             const previewEl = document.getElementById('uploadPreview');
             const payloadEl = document.getElementById('uploadPayload');
 
-            if (!previewEl) throw new Error('Önizleme elemanı bulunamadı');
-            if (!payloadEl) throw new Error('Payload elemanı bulunamadı');
+            if (!previewEl) {
+                alert('Error: uploadPreview element not found');
+                return;
+            }
+            if (!payloadEl) {
+                alert('Error: uploadPayload element not found');
+                return;
+            }
 
+            // Set values
             previewEl.innerHTML = preview.html;
             payloadEl.value = JSON.stringify({
                 rows
             });
 
             const modalEl = document.getElementById('uploadModal');
+            if (!modalEl) {
+                alert('Error: uploadModal element not found');
+                return;
+            }
+            
             const modal = bootstrap.Modal.getOrCreateInstance ? bootstrap.Modal.getOrCreateInstance(modalEl) : new bootstrap.Modal(modalEl);
             modal.show();
 
             input.value = '';
         } catch (err) {
+            console.error('File upload error:', err);
             alert('Dosya okunamadı: ' + (err?.message || err));
             if (input) input.value = '';
         }
