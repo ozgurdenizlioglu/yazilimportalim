@@ -520,6 +520,43 @@ use App\Core\Helpers;
     const uploadFileInput = document.getElementById('uploadFile');
     uploadFileInput.addEventListener('change', handleUpload);
 
+    // Helper: Load XLSX library if needed
+    async function loadXlsxIfNeeded() {
+        if (typeof XLSX === 'undefined') {
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+                script.onload = resolve;
+                script.onerror = () => reject(new Error('XLSX library yüklenemedi'));
+                document.head.appendChild(script);
+            });
+        }
+    }
+
+    // Helper: Read XLSX file
+    async function readXlsx(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, {
+                        type: 'array'
+                    });
+                    const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const rows = XLSX.utils.sheet_to_json(worksheet, {
+                        header: 1
+                    });
+                    resolve(rows);
+                } catch (err) {
+                    reject(err);
+                }
+            };
+            reader.onerror = () => reject(new Error('Dosya okunamadı'));
+            reader.readAsArrayBuffer(file);
+        });
+    }
+
     async function downloadTemplateXlsx() {
         const allFields = [{
                 id: 'proje',
@@ -656,105 +693,144 @@ use App\Core\Helpers;
         XLSX.writeFile(wb, 'muhasebe_export_' + dateStr + '.xlsx');
     }
 
-    async function handleUpload(event) {
-        const file = event.target.files[0];
+    async function handleUpload(e) {
+        try {
+            await loadXlsxIfNeeded();
+        } catch (e2) {
+            alert('XLSX kütüphanesi yüklenemedi: ' + (e2?.message || e2));
+            return;
+        }
+
+        const input = e.currentTarget || e.target;
+        const file = input?.files?.[0];
         if (!file) return;
 
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            try {
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, {
-                    type: 'array'
-                });
-                const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-                const rows = XLSX.utils.sheet_to_json(worksheet, {
-                    header: 1
-                });
+        const name = (file.name || '').toLowerCase();
 
-                if (rows.length < 2) {
-                    alert('Excel dosyası en az 2 satır içermelidir (başlık + veri)');
-                    return;
-                }
+        try {
+            let rows;
+            if (name.endsWith('.xlsx') || name.endsWith('.xls')) rows = await readXlsx(file);
+            else throw new Error('Sadece .xlsx, .xls dosyaları desteklenir.');
 
-                const headers = rows[0];
-                const records = [];
+            if (!rows || rows.length === 0) throw new Error('Boş dosya veya okunamadı.');
 
-                for (let i = 1; i < rows.length; i++) {
-                    const row = rows[i];
-                    const record = {};
-                    headers.forEach((header, idx) => {
-                        record[header] = row[idx] || '';
-                    });
-                    records.push(record);
-                }
+            const preview = buildPreviewTable(rows);
+            document.getElementById('uploadPreview').innerHTML = preview.html;
+            document.getElementById('uploadPayload').value = JSON.stringify({
+                rows
+            });
 
-                showUploadPreview(records);
-            } catch (err) {
-                console.error('Error reading file:', err);
-                alert('Dosya okunurken hata oluştu: ' + err.message);
-            }
-        };
-        reader.readAsArrayBuffer(file);
+            const modalEl = document.getElementById('uploadModal');
+            const modal = bootstrap.Modal.getOrCreateInstance ? bootstrap.Modal.getOrCreateInstance(modalEl) : new bootstrap.Modal(modalEl);
+            modal.show();
+
+            input.value = '';
+        } catch (err) {
+            alert('Dosya okunamadı: ' + (err?.message || err));
+            if (input) input.value = '';
+        }
     }
 
-    function showUploadPreview(records) {
-        const modal = new bootstrap.Modal(document.getElementById('uploadModal'));
-        const previewTable = document.getElementById('uploadPreviewTable');
-        previewTable.innerHTML = '';
+    function buildPreviewTable(rows) {
+        const headers = rows[0] || [];
+        const dataRows = rows.slice(1);
 
-        const tbody = document.createElement('tbody');
-        records.forEach((record, idx) => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td><input type="checkbox" class="form-check-input" checked data-index="${idx}"></td>
-                <td>${idx + 1}</td>
-                <td>${Object.values(record).slice(0, 3).join(', ')}</td>
-            `;
-            tbody.appendChild(tr);
+        let html = '<table class="table table-sm table-hover"><thead class="table-light"><tr>';
+        html += '<th style="width:40px;"><input type="checkbox" id="selectAll" onchange="document.querySelectorAll(\'#uploadPreview input[data-row]\').forEach(cb => cb.checked = this.checked)"></th>';
+        html += '<th>#</th>';
+        headers.forEach((h) => {
+            html += '<th>' + (h || '').toString().substring(0, 20) + '</th>';
         });
-        previewTable.appendChild(tbody);
+        html += '</tr></thead><tbody>';
 
-        document.getElementById('confirmUpload').onclick = () => {
-            const checkedIndexes = Array.from(document.querySelectorAll('#uploadPreviewTable input:checked'))
-                .map(cb => parseInt(cb.dataset.index));
-            const selectedRecords = checkedIndexes.map(idx => records[idx]);
+        dataRows.forEach((row, idx) => {
+            html += '<tr>';
+            html += '<td><input type="checkbox" class="form-check-input" data-row="' + idx + '" checked></td>';
+            html += '<td>' + (idx + 1) + '</td>';
+            (row || []).forEach((cell) => {
+                const val = (cell ?? '').toString();
+                html += '<td>' + (val.substring(0, 30) || '-') + '</td>';
+            });
+            html += '</tr>';
+        });
+        html += '</tbody></table>';
 
-            if (selectedRecords.length === 0) {
-                alert('Lütfen en az bir kayıt seçiniz');
+        return {
+            html,
+            dataRows
+        };
+    }
+
+    // Setup upload form submission
+    const uploadForm = document.getElementById('uploadSubmitForm');
+    if (uploadForm) {
+        uploadForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const payloadEl = document.getElementById('uploadPayload');
+            const val = payloadEl?.value || '';
+
+            if (!val) {
+                alert('Yüklenecek veri yok. Lütfen önce bir dosya seçin.');
                 return;
             }
 
-            submitUpload(selectedRecords);
-            modal.hide();
-        };
-
-        modal.show();
-    }
-
-    function submitUpload(records) {
-        const formData = new FormData();
-        formData.append('records', JSON.stringify(records));
-
-        fetch('/muhasebe/bulk-upload', {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert(data.message);
-                // Clear file input
-                document.getElementById('uploadFile').value = '';
-                // Reload the page to show new data
-                location.reload();
-            } else {
-                alert('Hata: ' + (data.error || 'Bilinmeyen hata'));
+            try {
+                const parsed = JSON.parse(val);
+                if (!parsed || !Array.isArray(parsed.rows)) {
+                    alert('Geçersiz payload formatı.');
+                    return;
+                }
+            } catch {
+                alert('Payload JSON değil.');
+                return;
             }
-        })
-        .catch(err => {
-            console.error('Error:', err);
-            alert('Yükleme sırasında hata oluştu: ' + err.message);
+
+            const headers = {
+                'Accept': 'application/json'
+            };
+            const metaCsrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            const formCsrf = uploadForm.querySelector('input[name="_token"]')?.value;
+            const csrf = metaCsrf || formCsrf;
+
+            if (csrf) headers['X-CSRF-TOKEN'] = csrf;
+
+            const formData = new FormData();
+            if (formCsrf) formData.append('_token', formCsrf);
+            formData.append('payload', val);
+
+            try {
+                const resp = await fetch(uploadForm.getAttribute('action') || '/muhasebe/bulk-upload', {
+                    method: 'POST',
+                    headers,
+                    body: formData,
+                    credentials: 'same-origin'
+                });
+
+                const contentType = resp.headers.get('content-type') || '';
+                const isJson = contentType.includes('application/json');
+                const data = isJson ? await resp.json().catch(() => null) : await resp.text();
+
+                if (!resp.ok) {
+                    const msg = isJson ? (data?.message || JSON.stringify(data)) : String(data);
+                    alert('Yükleme başarısız: ' + msg);
+                    return;
+                }
+
+                alert('Yükleme başarılı: ' + (data?.inserted || 0) + ' muhasebe kaydı eklendi.');
+
+                // Hide modal and reload
+                const modalEl = document.getElementById('uploadModal');
+                const modal = bootstrap.Modal.getOrCreateInstance ? bootstrap.Modal.getOrCreateInstance(modalEl) : new bootstrap.Modal(modalEl);
+                modal.hide();
+
+                setTimeout(() => {
+                    window.location.reload();
+                }, 500);
+
+            } catch (err) {
+                alert('Yükleme sırasında hata oluştu: ' + (err?.message || err));
+            }
         });
     }
 </script>
@@ -763,27 +839,22 @@ use App\Core\Helpers;
 <div class="modal fade" id="uploadModal" tabindex="-1" aria-labelledby="uploadModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-scrollable">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 id="uploadModalLabel" class="modal-title">Yükleme Önizleme</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
-            </div>
-            <div class="modal-body">
-                <div class="table-responsive">
-                    <table class="table table-sm table-hover" id="uploadPreviewTable">
-                        <thead class="table-light">
-                            <tr>
-                                <th style="width: 40px;"><input type="checkbox" class="form-check-input" id="selectAll" onchange="document.querySelectorAll('#uploadPreviewTable input[data-index]').forEach(cb => cb.checked = this.checked)"></th>
-                                <th>#</th>
-                                <th>Önizleme</th>
-                            </tr>
-                        </thead>
-                    </table>
+            <form id="uploadSubmitForm" action="/muhasebe/bulk-upload" method="POST">
+                <div class="modal-header">
+                    <h5 id="uploadModalLabel" class="modal-title">Yükleme Önizleme</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
                 </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
-                <button type="button" class="btn btn-primary" id="confirmUpload">Onayla ve Yükle</button>
-            </div>
+                <div class="modal-body">
+                    <div class="table-responsive" id="uploadPreview">
+                        <p class="text-muted">Dosya seçildikten sonra önizleme burada görünecek...</p>
+                    </div>
+                    <input type="hidden" id="uploadPayload" name="payload" value="">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                    <button type="submit" class="btn btn-primary">Onayla ve Yükle</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>

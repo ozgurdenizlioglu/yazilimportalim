@@ -172,66 +172,124 @@ class MuhasebeController extends Controller
     // Bulk upload records
     public function bulkUpload(): void
     {
-        $pdo = Database::pdo();
-        header('Content-Type: application/json');
+        ob_start();
+        header('Content-Type: application/json; charset=utf-8');
+        set_time_limit(600);
 
         try {
-            $recordsJson = $_POST['records'] ?? '[]';
-            $records = json_decode($recordsJson, true);
+            error_log('[Muhasebe BulkUpload] Starting...');
 
-            if (!is_array($records) || empty($records)) {
-                http_response_code(400);
-                echo json_encode(['error' => 'No records to upload']);
-                return;
-            }
-
-            $success = 0;
-            $failed = 0;
-            $errors = [];
-
-            foreach ($records as $idx => $record) {
-                try {
-                    $data = [
-                        'proje' => trim($record['Proje'] ?? ''),
-                        'tahakkuk_tarihi' => $record['Tahakkuk Tarihi'] ?? null,
-                        'vade_tarihi' => $record['Vade Tarihi'] ?? null,
-                        'cek_no' => trim($record['Çek No'] ?? ''),
-                        'aciklama' => trim($record['Açıklama'] ?? ''),
-                        'aciklama2' => trim($record['Açıklama 2'] ?? ''),
-                        'aciklama3' => trim($record['Açıklama 3'] ?? ''),
-                        'tutar_try' => $record['Tutar (TRY)'] ?? null,
-                        'cari_hesap_ismi' => trim($record['Cari Hesap'] ?? ''),
-                        'wb' => trim($record['WB'] ?? ''),
-                        'ws' => trim($record['WS'] ?? ''),
-                        'row_col' => trim($record['Row'] ?? ''),
-                        'cost_code' => trim($record['Cost Code'] ?? ''),
-                        'dikkate_alinmayacaklar' => trim($record['Dikkate Alınmayacaklar'] ?? ''),
-                        'usd_karsiligi' => $record['USD Karşılığı'] ?? null,
-                        'id_text' => trim($record['ID (Text)'] ?? ''),
-                        'id_veriler' => trim($record['ID Veriler'] ?? ''),
-                        'id_odeme_plan_satinalma_odeme_onay_listesi' => trim($record['ID Ödeme Plan'] ?? ''),
-                        'not_field' => trim($record['Not'] ?? ''),
-                        'not_ool_odeme_plani' => trim($record['Not OOL/Ödeme'] ?? ''),
-                    ];
-
-                    Muhasebe::create($pdo, $data);
-                    $success++;
-                } catch (\Exception $e) {
-                    $failed++;
-                    $errors[] = "Satır " . ($idx + 2) . ": " . $e->getMessage();
+            // Get payload from POST or raw body
+            $payloadJson = $_POST['payload'] ?? null;
+            if (!$payloadJson) {
+                $raw = file_get_contents('php://input') ?: '';
+                if ($raw) {
+                    $parsed = json_decode($raw, true);
+                    if (isset($parsed['payload'])) $payloadJson = (string)$parsed['payload'];
+                    elseif (isset($parsed['rows']) && is_array($parsed['rows'])) {
+                        $payloadJson = json_encode(['rows' => $parsed['rows']], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                    }
                 }
             }
 
+            if (!$payloadJson) {
+                http_response_code(400);
+                echo json_encode(['message' => 'payload missing']);
+                ob_end_flush();
+                error_log('[Muhasebe BulkUpload] Error: payload missing');
+                return;
+            }
+
+            $payload = json_decode($payloadJson, true);
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                http_response_code(400);
+                echo json_encode(['message' => 'payload not valid JSON']);
+                ob_end_flush();
+                error_log('[Muhasebe BulkUpload] Error: invalid JSON - ' . json_last_error_msg());
+                return;
+            }
+
+            $rows = $payload['rows'] ?? null;
+            if (!is_array($rows) || count($rows) < 2) {
+                http_response_code(422);
+                echo json_encode(['message' => 'rows must include header + at least 1 data row']);
+                ob_end_flush();
+                error_log('[Muhasebe BulkUpload] Error: rows invalid');
+                return;
+            }
+
+            error_log('[Muhasebe BulkUpload] Received ' . count($rows) . ' rows');
+
+            $headers = array_map(static fn($h) => trim((string)$h), (array)$rows[0]);
+            $dataRows = array_slice($rows, 1);
+
+            // Column name mapping from Excel headers to database fields
+            $columnMap = [
+                'Proje' => 'proje',
+                'Tahakkuk Tarihi' => 'tahakkuk_tarihi',
+                'Vade Tarihi' => 'vade_tarihi',
+                'Çek No' => 'cek_no',
+                'Açıklama' => 'aciklama',
+                'Açıklama 2' => 'aciklama2',
+                'Açıklama 3' => 'aciklama3',
+                'Tutar (TRY)' => 'tutar_try',
+                'Cari Hesap' => 'cari_hesap_ismi',
+                'WB' => 'wb',
+                'WS' => 'ws',
+                'Row' => 'row_col',
+                'Cost Code' => 'cost_code',
+                'Dikkate Alınmayacaklar' => 'dikkate_alinmayacaklar',
+                'USD Karşılığı' => 'usd_karsiligi',
+                'ID (Text)' => 'id_text',
+                'ID Veriler' => 'id_veriler',
+                'ID Ödeme Plan' => 'id_odeme_plan_satinalma_odeme_onay_listesi',
+                'Not' => 'not_field',
+                'Not OOL/Ödeme' => 'not_ool_odeme_plani',
+            ];
+
+            $pdo = Database::pdo();
+            $inserted = 0;
+
+            foreach ($dataRows as $rowNum => $values) {
+                $record = [];
+                foreach ($headers as $colIdx => $header) {
+                    if (isset($columnMap[$header])) {
+                        $dbColumn = $columnMap[$header];
+                        $value = $values[$colIdx] ?? null;
+                        if ($value === '' || $value === null) {
+                            $record[$dbColumn] = null;
+                        } else {
+                            $record[$dbColumn] = $value;
+                        }
+                    }
+                }
+
+                try {
+                    Muhasebe::create($pdo, $record);
+                    $inserted++;
+                } catch (\Exception $e) {
+                    http_response_code(400);
+                    echo json_encode([
+                        'message' => 'Satır ' . ($rowNum + 2) . "'de hata: " . $e->getMessage()
+                    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                    ob_end_flush();
+                    error_log('[Muhasebe BulkUpload] Row ' . ($rowNum + 2) . ' error: ' . $e->getMessage());
+                    return;
+                }
+            }
+
+            http_response_code(200);
             echo json_encode([
-                'success' => true,
-                'message' => "$success kayıt başarıyla yüklendi. $failed hata.",
-                'uploaded' => $success,
-                'failed' => $failed,
-                'errors' => $errors
-            ]);
+                'inserted' => $inserted,
+                'message' => "$inserted muhasebe kaydı başarıyla yüklendi"
+            ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            ob_end_flush();
+            error_log('[Muhasebe BulkUpload] Success: inserted ' . $inserted . ' records');
         } catch (\Exception $e) {
             http_response_code(500);
-            echo json_encode(['error' => $e->getMessage()]);
+            echo json_encode(['message' => 'Exception: ' . $e->getMessage()], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            ob_end_flush();
+            error_log('[Muhasebe BulkUpload] Exception: ' . $e->getMessage());
         }
     }
 }
