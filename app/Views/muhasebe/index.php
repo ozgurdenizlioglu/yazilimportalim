@@ -780,10 +780,10 @@ use App\Core\Helpers;
         };
     }
 
-    // Setup upload form submission
-    const uploadForm = document.getElementById('uploadSubmitForm');
-    if (uploadForm) {
-        uploadForm.addEventListener('submit', async (e) => {
+    // Setup upload confirmation button
+    const confirmUploadBtn = document.getElementById('confirmUploadBtn');
+    if (confirmUploadBtn) {
+        confirmUploadBtn.addEventListener('click', async (e) => {
             e.preventDefault();
 
             const payloadEl = document.getElementById('uploadPayload');
@@ -809,17 +809,14 @@ use App\Core\Helpers;
                 'Accept': 'application/json'
             };
             const metaCsrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-            const formCsrf = uploadForm.querySelector('input[name="_token"]')?.value;
-            const csrf = metaCsrf || formCsrf;
-
-            if (csrf) headers['X-CSRF-TOKEN'] = csrf;
+            if (metaCsrf) headers['X-CSRF-TOKEN'] = metaCsrf;
 
             const formData = new FormData();
-            if (formCsrf) formData.append('_token', formCsrf);
+            if (metaCsrf) formData.append('_token', metaCsrf);
             formData.append('payload', val);
 
             try {
-                const resp = await fetch(uploadForm.getAttribute('action') || '/muhasebe/bulk-upload', {
+                const resp = await fetch('/muhasebe/bulk-upload', {
                     method: 'POST',
                     headers,
                     body: formData,
@@ -856,23 +853,20 @@ use App\Core\Helpers;
 
 <!-- Upload Modal -->
 <div class="modal fade" id="uploadModal" tabindex="-1" aria-labelledby="uploadModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-scrollable">
-        <div class="modal-content">
+    <div class="modal-dialog modal-xl" style="max-height: 90vh; display: flex; flex-direction: column;">
+        <div class="modal-content" style="display: flex; flex-direction: column; overflow: hidden;">
             <div class="modal-header">
                 <h5 id="uploadModalLabel" class="modal-title">Yükleme Önizleme</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
             </div>
-            <div class="modal-body" style="max-height: 60vh; overflow-y: auto;">
+            <div class="modal-body" style="flex: 1; overflow-y: auto; min-height: 0;">
                 <div id="uploadPreview" class="upload-preview">
                     <p class="text-muted">Dosya seçildikten sonra önizleme burada görünecek...</p>
                 </div>
             </div>
             <div class="modal-footer">
-                <form id="uploadSubmitForm" method="post" action="/muhasebe/bulk-upload" class="ms-auto" style="display: flex; gap: 0.5rem;">
-                    <input type="hidden" name="payload" id="uploadPayload">
-                    <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">İptal</button>
-                    <button class="btn btn-primary" type="submit">Onayla ve Yükle</button>
-                </form>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                <button type="button" class="btn btn-primary" id="confirmUploadBtn">Onayla ve Yükle</button>
             </div>
         </div>
     </div>
