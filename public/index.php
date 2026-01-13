@@ -14,6 +14,7 @@ use App\Controllers\AttendanceController;
 use App\Controllers\ProjectController;
 use App\Controllers\ContractController;
 use App\Controllers\DisciplineController;
+use App\Controllers\MuhasebeController;
 
 // .env yükle
 $root = dirname(__DIR__);
@@ -120,6 +121,14 @@ $router->get('/api/disciplines', [DisciplineController::class, 'list']);
 $router->get('/api/disciplines/branches', [DisciplineController::class, 'branches']);
 $router->post('/api/disciplines/create', [DisciplineController::class, 'createApi']);
 $router->post('/api/disciplines/create-branch', [DisciplineController::class, 'createBranchApi']);
+
+// Rotalar - muhasebe
+$router->get('/muhasebe', [MuhasebeController::class, 'index']);
+$router->get('/muhasebe/create', [MuhasebeController::class, 'create']);
+$router->post('/muhasebe/store', [MuhasebeController::class, 'store']);
+$router->get('/muhasebe/edit', [MuhasebeController::class, 'edit']); // ?id=...
+$router->post('/muhasebe/update', [MuhasebeController::class, 'update']);
+$router->post('/muhasebe/delete', [MuhasebeController::class, 'destroy']);
 
 // İsteği çalıştır
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
