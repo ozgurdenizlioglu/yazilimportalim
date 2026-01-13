@@ -734,8 +734,14 @@ use App\Core\Helpers;
             if (!rows || rows.length === 0) throw new Error('Boş dosya veya okunamadı.');
 
             const preview = buildPreviewTable(rows);
-            document.getElementById('uploadPreview').innerHTML = preview.html;
-            document.getElementById('uploadPayload').value = JSON.stringify({
+            const previewEl = document.getElementById('uploadPreview');
+            const payloadEl = document.getElementById('uploadPayload');
+
+            if (!previewEl) throw new Error('Önizleme elemanı bulunamadı');
+            if (!payloadEl) throw new Error('Payload elemanı bulunamadı');
+
+            previewEl.innerHTML = preview.html;
+            payloadEl.value = JSON.stringify({
                 rows
             });
 
@@ -863,6 +869,7 @@ use App\Core\Helpers;
                 <div id="uploadPreview" class="upload-preview">
                     <p class="text-muted">Dosya seçildikten sonra önizleme burada görünecek...</p>
                 </div>
+                <input type="hidden" id="uploadPayload" value="">
             </div>
             <div class="modal-footer" style="position: sticky; bottom: 0; border-top: 1px solid #dee2e6; background-color: #fff; z-index: 1000;">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
