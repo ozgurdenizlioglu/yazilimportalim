@@ -217,6 +217,25 @@ use App\Core\Helpers;
         text-overflow: ellipsis;
         vertical-align: bottom;
     }
+
+    .upload-preview {
+        font-size: 0.875rem;
+    }
+
+    .upload-preview table {
+        margin-bottom: 0;
+    }
+
+    .upload-preview th {
+        font-weight: 600;
+        background-color: #f8f9fa;
+        white-space: nowrap;
+    }
+
+    .upload-preview td {
+        padding: 0.5rem;
+        vertical-align: middle;
+    }
 </style>
 
 <script>
@@ -839,22 +858,22 @@ use App\Core\Helpers;
 <div class="modal fade" id="uploadModal" tabindex="-1" aria-labelledby="uploadModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-scrollable">
         <div class="modal-content">
-            <form id="uploadSubmitForm" action="/muhasebe/bulk-upload" method="POST">
-                <div class="modal-header">
-                    <h5 id="uploadModalLabel" class="modal-title">Yükleme Önizleme</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+            <div class="modal-header">
+                <h5 id="uploadModalLabel" class="modal-title">Yükleme Önizleme</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+            </div>
+            <div class="modal-body" style="max-height: 60vh; overflow-y: auto;">
+                <div id="uploadPreview" class="upload-preview">
+                    <p class="text-muted">Dosya seçildikten sonra önizleme burada görünecek...</p>
                 </div>
-                <div class="modal-body">
-                    <div class="table-responsive" id="uploadPreview">
-                        <p class="text-muted">Dosya seçildikten sonra önizleme burada görünecek...</p>
-                    </div>
-                    <input type="hidden" id="uploadPayload" name="payload" value="">
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
-                    <button type="submit" class="btn btn-primary">Onayla ve Yükle</button>
-                </div>
-            </form>
+            </div>
+            <div class="modal-footer">
+                <form id="uploadSubmitForm" method="post" action="/muhasebe/bulk-upload" class="ms-auto" style="display: flex; gap: 0.5rem;">
+                    <input type="hidden" name="payload" id="uploadPayload">
+                    <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">İptal</button>
+                    <button class="btn btn-primary" type="submit">Onayla ve Yükle</button>
+                </form>
+            </div>
         </div>
     </div>
 </div>
