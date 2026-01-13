@@ -129,6 +129,7 @@ $router->post('/muhasebe/store', [MuhasebeController::class, 'store']);
 $router->get('/muhasebe/edit', [MuhasebeController::class, 'edit']); // ?id=...
 $router->post('/muhasebe/update', [MuhasebeController::class, 'update']);
 $router->post('/muhasebe/delete', [MuhasebeController::class, 'destroy']);
+$router->post('/muhasebe/bulk-upload', [MuhasebeController::class, 'bulkUpload']);
 
 // İsteği çalıştır
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';

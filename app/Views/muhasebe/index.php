@@ -10,6 +10,12 @@ use App\Core\Helpers;
         <a class="btn btn-primary" href="/muhasebe/create"><i class="bi bi-plus-lg me-1"></i>Yeni Kayıt</a>
         <button class="btn btn-outline-secondary" type="button" id="toggleColumnPanel"><i class="bi bi-columns-gap me-1"></i>Kolonları Yönet</button>
         <button class="btn btn-outline-secondary" type="button" id="resetView"><i class="bi bi-arrow-counterclockwise me-1"></i>Görünümü Sıfırla</button>
+        <button class="btn btn-success" type="button" id="exportExcel"><i class="bi bi-file-earmark-spreadsheet me-1"></i>Excele Aktar</button>
+        <button class="btn btn-outline-primary" type="button" id="downloadTemplate"><i class="bi bi-download me-1"></i>Şablon İndir</button>
+        <label class="btn btn-outline-secondary mb-0">
+            <i class="bi bi-upload me-1"></i>Upload Et
+            <input type="file" id="uploadFile" accept=".xlsx,.xls" hidden>
+        </label>
     </div>
 </div>
 
@@ -499,4 +505,287 @@ use App\Core\Helpers;
             form.submit();
         }
     }
+
+    // Download Template
+    document.getElementById('downloadTemplate').onclick = () => {
+        downloadTemplateXlsx();
+    };
+
+    // Export to Excel
+    document.getElementById('exportExcel').onclick = () => {
+        exportToExcelXlsx();
+    };
+
+    // Upload File
+    const uploadFileInput = document.getElementById('uploadFile');
+    uploadFileInput.addEventListener('change', handleUpload);
+
+    async function downloadTemplateXlsx() {
+        const allFields = [{
+                id: 'proje',
+                label: 'Proje'
+            },
+            {
+                id: 'tahakkuk_tarihi',
+                label: 'Tahakkuk Tarihi'
+            },
+            {
+                id: 'vade_tarihi',
+                label: 'Vade Tarihi'
+            },
+            {
+                id: 'cek_no',
+                label: 'Çek No'
+            },
+            {
+                id: 'aciklama',
+                label: 'Açıklama'
+            },
+            {
+                id: 'aciklama2',
+                label: 'Açıklama 2'
+            },
+            {
+                id: 'aciklama3',
+                label: 'Açıklama 3'
+            },
+            {
+                id: 'tutar_try',
+                label: 'Tutar (TRY)'
+            },
+            {
+                id: 'cari_hesap_ismi',
+                label: 'Cari Hesap'
+            },
+            {
+                id: 'wb',
+                label: 'WB'
+            },
+            {
+                id: 'ws',
+                label: 'WS'
+            },
+            {
+                id: 'row_col',
+                label: 'Row'
+            },
+            {
+                id: 'cost_code',
+                label: 'Cost Code'
+            },
+            {
+                id: 'dikkate_alinmayacaklar',
+                label: 'Dikkate Alınmayacaklar'
+            },
+            {
+                id: 'usd_karsiligi',
+                label: 'USD Karşılığı'
+            },
+            {
+                id: 'id_text',
+                label: 'ID (Text)'
+            },
+            {
+                id: 'id_veriler',
+                label: 'ID Veriler'
+            },
+            {
+                id: 'id_odeme_plan_satinalma_odeme_onay_listesi',
+                label: 'ID Ödeme Plan'
+            },
+            {
+                id: 'not_field',
+                label: 'Not'
+            },
+            {
+                id: 'not_ool_odeme_plani',
+                label: 'Not OOL/Ödeme'
+            }
+        ];
+
+        const wb = XLSX.utils.book_new();
+        const wsData = [allFields.map(f => f.label)];
+        const ws = XLSX.utils.aoa_to_sheet(wsData);
+        XLSX.utils.book_append_sheet(wb, ws, 'Muhasebe');
+        XLSX.writeFile(wb, 'muhasebe_template.xlsx');
+    }
+
+    function exportToExcelXlsx() {
+        const now = new Date();
+        const dateStr = now.getFullYear() + '' + String(now.getMonth() + 1).padStart(2, '0') + '' + String(now.getDate()).padStart(2, '0');
+
+        // Get visible columns only
+        const visibleHeaders = allFields.filter(f => visibleFields.includes(f.id));
+
+        // Get filtered and sorted data
+        const wsData = [visibleHeaders.map(f => f.label)];
+
+        // Apply filters
+        let filteredData = DATA.filter(record => {
+            return visibleHeaders.every(field => {
+                const filterValue = filters[field.id] || '';
+                if (!filterValue) return true;
+                const cellValue = String(record[field.id] || '').toLowerCase();
+                return cellValue.includes(filterValue.toLowerCase());
+            });
+        });
+
+        // Apply sorting
+        if (currentSort.field) {
+            const direction = currentSort.direction === 'asc' ? 1 : -1;
+            filteredData.sort((a, b) => {
+                const aVal = a[currentSort.field];
+                const bVal = b[currentSort.field];
+                if (aVal === null || aVal === undefined) return direction;
+                if (bVal === null || bVal === undefined) return -direction;
+                if (aVal < bVal) return -direction;
+                if (aVal > bVal) return direction;
+                return 0;
+            });
+        }
+
+        // Build data rows
+        filteredData.forEach(record => {
+            const row = visibleHeaders.map(field => record[field.id] || '');
+            wsData.push(row);
+        });
+
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.aoa_to_sheet(wsData);
+        XLSX.utils.book_append_sheet(wb, ws, 'Muhasebe');
+        XLSX.writeFile(wb, 'muhasebe_export_' + dateStr + '.xlsx');
+    }
+
+    async function handleUpload(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, {
+                    type: 'array'
+                });
+                const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+                const rows = XLSX.utils.sheet_to_json(worksheet, {
+                    header: 1
+                });
+
+                if (rows.length < 2) {
+                    alert('Excel dosyası en az 2 satır içermelidir (başlık + veri)');
+                    return;
+                }
+
+                const headers = rows[0];
+                const records = [];
+
+                for (let i = 1; i < rows.length; i++) {
+                    const row = rows[i];
+                    const record = {};
+                    headers.forEach((header, idx) => {
+                        record[header] = row[idx] || '';
+                    });
+                    records.push(record);
+                }
+
+                showUploadPreview(records);
+            } catch (err) {
+                console.error('Error reading file:', err);
+                alert('Dosya okunurken hata oluştu: ' + err.message);
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    }
+
+    function showUploadPreview(records) {
+        const modal = new bootstrap.Modal(document.getElementById('uploadModal'));
+        const previewTable = document.getElementById('uploadPreviewTable');
+        previewTable.innerHTML = '';
+
+        const tbody = document.createElement('tbody');
+        records.forEach((record, idx) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><input type="checkbox" class="form-check-input" checked data-index="${idx}"></td>
+                <td>${idx + 1}</td>
+                <td>${Object.values(record).slice(0, 3).join(', ')}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+        previewTable.appendChild(tbody);
+
+        document.getElementById('confirmUpload').onclick = () => {
+            const checkedIndexes = Array.from(document.querySelectorAll('#uploadPreviewTable input:checked'))
+                .map(cb => parseInt(cb.dataset.index));
+            const selectedRecords = checkedIndexes.map(idx => records[idx]);
+
+            if (selectedRecords.length === 0) {
+                alert('Lütfen en az bir kayıt seçiniz');
+                return;
+            }
+
+            submitUpload(selectedRecords);
+            modal.hide();
+        };
+
+        modal.show();
+    }
+
+    function submitUpload(records) {
+        const formData = new FormData();
+        formData.append('records', JSON.stringify(records));
+
+        fetch('/muhasebe/bulk-upload', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                // Clear file input
+                document.getElementById('uploadFile').value = '';
+                // Reload the page to show new data
+                location.reload();
+            } else {
+                alert('Hata: ' + (data.error || 'Bilinmeyen hata'));
+            }
+        })
+        .catch(err => {
+            console.error('Error:', err);
+            alert('Yükleme sırasında hata oluştu: ' + err.message);
+        });
+    }
 </script>
+
+<!-- Upload Modal -->
+<div class="modal fade" id="uploadModal" tabindex="-1" aria-labelledby="uploadModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 id="uploadModalLabel" class="modal-title">Yükleme Önizleme</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover" id="uploadPreviewTable">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 40px;"><input type="checkbox" class="form-check-input" id="selectAll" onchange="document.querySelectorAll('#uploadPreviewTable input[data-index]').forEach(cb => cb.checked = this.checked)"></th>
+                                <th>#</th>
+                                <th>Önizleme</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                <button type="button" class="btn btn-primary" id="confirmUpload">Onayla ve Yükle</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>

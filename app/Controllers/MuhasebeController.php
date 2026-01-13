@@ -168,4 +168,70 @@ class MuhasebeController extends Controller
             echo 'Hata: ' . htmlspecialchars($e->getMessage());
         }
     }
+
+    // Bulk upload records
+    public function bulkUpload(): void
+    {
+        $pdo = Database::pdo();
+        header('Content-Type: application/json');
+
+        try {
+            $recordsJson = $_POST['records'] ?? '[]';
+            $records = json_decode($recordsJson, true);
+
+            if (!is_array($records) || empty($records)) {
+                http_response_code(400);
+                echo json_encode(['error' => 'No records to upload']);
+                return;
+            }
+
+            $success = 0;
+            $failed = 0;
+            $errors = [];
+
+            foreach ($records as $idx => $record) {
+                try {
+                    $data = [
+                        'proje' => trim($record['Proje'] ?? ''),
+                        'tahakkuk_tarihi' => $record['Tahakkuk Tarihi'] ?? null,
+                        'vade_tarihi' => $record['Vade Tarihi'] ?? null,
+                        'cek_no' => trim($record['Çek No'] ?? ''),
+                        'aciklama' => trim($record['Açıklama'] ?? ''),
+                        'aciklama2' => trim($record['Açıklama 2'] ?? ''),
+                        'aciklama3' => trim($record['Açıklama 3'] ?? ''),
+                        'tutar_try' => $record['Tutar (TRY)'] ?? null,
+                        'cari_hesap_ismi' => trim($record['Cari Hesap'] ?? ''),
+                        'wb' => trim($record['WB'] ?? ''),
+                        'ws' => trim($record['WS'] ?? ''),
+                        'row_col' => trim($record['Row'] ?? ''),
+                        'cost_code' => trim($record['Cost Code'] ?? ''),
+                        'dikkate_alinmayacaklar' => trim($record['Dikkate Alınmayacaklar'] ?? ''),
+                        'usd_karsiligi' => $record['USD Karşılığı'] ?? null,
+                        'id_text' => trim($record['ID (Text)'] ?? ''),
+                        'id_veriler' => trim($record['ID Veriler'] ?? ''),
+                        'id_odeme_plan_satinalma_odeme_onay_listesi' => trim($record['ID Ödeme Plan'] ?? ''),
+                        'not_field' => trim($record['Not'] ?? ''),
+                        'not_ool_odeme_plani' => trim($record['Not OOL/Ödeme'] ?? ''),
+                    ];
+
+                    Muhasebe::create($pdo, $data);
+                    $success++;
+                } catch (\Exception $e) {
+                    $failed++;
+                    $errors[] = "Satır " . ($idx + 2) . ": " . $e->getMessage();
+                }
+            }
+
+            echo json_encode([
+                'success' => true,
+                'message' => "$success kayıt başarıyla yüklendi. $failed hata.",
+                'uploaded' => $success,
+                'failed' => $failed,
+                'errors' => $errors
+            ]);
+        } catch (\Exception $e) {
+            http_response_code(500);
+            echo json_encode(['error' => $e->getMessage()]);
+        }
+    }
 }
