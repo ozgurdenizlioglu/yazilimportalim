@@ -7,6 +7,8 @@ namespace App\Controllers;
 use App\Core\Controller;
 use App\Core\Database;
 use App\Models\Muhasebe;
+use App\Models\ConvertCariHesapIsmi;
+use App\Models\CostCodeAssignment;
 
 class MuhasebeController extends Controller
 {
@@ -20,6 +22,50 @@ class MuhasebeController extends Controller
             'title' => 'Muhasebe',
             'records' => $records,
         ], 'layouts/base');
+    }
+
+    // API endpoint to get records as JSON with pagination
+    public function apiRecords(): void
+    {
+        header('Content-Type: application/json; charset=utf-8');
+
+        try {
+            $pdo = Database::pdo();
+
+            // Get pagination parameters from query string
+            $page = (int)($_GET['page'] ?? 1);
+            $pageSize = (int)($_GET['pageSize'] ?? 500); // Default 500 records per page
+            $pageSize = min($pageSize, 1000); // Max 1000 per page
+            $page = max($page, 1);
+
+            // Get total count
+            $countStmt = $pdo->query("SELECT COUNT(*) as count FROM muhasebe");
+            $countResult = $countStmt->fetch(\PDO::FETCH_ASSOC);
+            $total = (int)($countResult['count'] ?? 0);
+            $totalPages = ceil($total / $pageSize);
+
+            // Get paginated data
+            $offset = ($page - 1) * $pageSize;
+            $sql = "SELECT * FROM muhasebe ORDER BY id DESC LIMIT :limit OFFSET :offset";
+            $stmt = $pdo->prepare($sql);
+            $stmt->bindValue(':limit', $pageSize, \PDO::PARAM_INT);
+            $stmt->bindValue(':offset', $offset, \PDO::PARAM_INT);
+            $stmt->execute();
+            $records = $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+
+            echo json_encode([
+                'data' => $records,
+                'pagination' => [
+                    'page' => $page,
+                    'pageSize' => $pageSize,
+                    'total' => $total,
+                    'totalPages' => $totalPages
+                ]
+            ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        } catch (\Exception $e) {
+            http_response_code(500);
+            echo json_encode(['error' => $e->getMessage()], JSON_UNESCAPED_UNICODE);
+        }
     }
 
     // Show create form
@@ -249,6 +295,57 @@ class MuhasebeController extends Controller
 
             $pdo = Database::pdo();
             $inserted = 0;
+            $batchSize = 100;
+            $batch = [];
+            $errors = [];
+
+            // Helper function to parse and validate dates
+            $parseDate = function ($value) {
+                if (!$value || $value === '' || $value === null) {
+                    return null;
+                }
+
+                $value = trim((string)$value);
+
+                // Try to detect if it's an Excel serial date (number)
+                if (is_numeric($value) && $value > 0) {
+                    // Excel stores dates as serial numbers starting from 1899-12-31
+                    // Serial 1 = January 1, 1900, so epoch is December 31, 1899
+                    // Excel has a leap year bug: it treats 1900 as a leap year (it wasn't)
+                    // So for dates >= 60, we need to subtract 1 day
+                    $num = intval($value);
+                    $excelEpoch = \DateTime::createFromFormat('Y-m-d', '1899-12-31');
+                    $date = clone $excelEpoch;
+
+                    // Adjust for Excel's leap year bug
+                    if ($num >= 60) {
+                        $num--; // Account for the non-existent Feb 29, 1900
+                    }
+
+                    $date->modify('+' . $num . ' days');
+                    return $date->format('Y-m-d');
+                }
+
+                // Try common date formats
+                $formats = ['Y-m-d', 'd.m.Y', 'd/m/Y', 'm/d/Y', 'Y/m/d'];
+                foreach ($formats as $format) {
+                    $parsed = \DateTime::createFromFormat($format, $value);
+                    if ($parsed && $parsed->format($format) === $value) {
+                        return $parsed->format('Y-m-d');
+                    }
+                }
+
+                // If it looks like a date string but doesn't match formats, try strtotime
+                if (preg_match('/\d{1,4}[-\/\.]\d{1,2}[-\/\.]\d{1,4}/', $value)) {
+                    $parsed = strtotime($value);
+                    if ($parsed !== false) {
+                        return date('Y-m-d', $parsed);
+                    }
+                }
+
+                // Return null if not a valid date
+                return null;
+            };
 
             foreach ($dataRows as $rowNum => $values) {
                 $record = [];
@@ -256,26 +353,64 @@ class MuhasebeController extends Controller
                     if (isset($columnMap[$header])) {
                         $dbColumn = $columnMap[$header];
                         $value = $values[$colIdx] ?? null;
+
                         if ($value === '' || $value === null) {
                             $record[$dbColumn] = null;
                         } else {
-                            $record[$dbColumn] = $value;
+                            // Special handling for date fields
+                            if (in_array($dbColumn, ['tahakkuk_tarihi', 'vade_tarihi'])) {
+                                $record[$dbColumn] = $parseDate($value);
+                            } else {
+                                $record[$dbColumn] = $value;
+                            }
                         }
                     }
                 }
 
                 try {
+                    // Apply cari hesap name conversion if mapping exists
+                    if (!empty($record['cari_hesap_ismi'])) {
+                        $record['cari_hesap_ismi'] = ConvertCariHesapIsmi::convert($pdo, $record['cari_hesap_ismi']);
+                    }
+
+                    // Apply cost code assignment if cost code is blank or contains 'X'
+                    if (empty($record['cost_code']) || str_contains((string)$record['cost_code'], 'X')) {
+                        // Build search text from all description fields and cari hesap
+                        $searchText = implode(' ', array_filter([
+                            $record['aciklama'] ?? '',
+                            $record['aciklama2'] ?? '',
+                            $record['aciklama3'] ?? '',
+                            $record['cari_hesap_ismi'] ?? ''
+                        ]));
+
+                        if ($searchText) {
+                            $assignedCode = CostCodeAssignment::assignCostCode($pdo, $searchText, $record['cost_code'] ?? '');
+                            if ($assignedCode) {
+                                $record['cost_code'] = $assignedCode;
+                            }
+                        }
+                    }
+
                     Muhasebe::create($pdo, $record);
                     $inserted++;
                 } catch (\Exception $e) {
-                    http_response_code(400);
-                    echo json_encode([
-                        'message' => 'Satır ' . ($rowNum + 2) . "'de hata: " . $e->getMessage()
-                    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-                    ob_end_flush();
-                    error_log('[Muhasebe BulkUpload] Row ' . ($rowNum + 2) . ' error: ' . $e->getMessage());
-                    return;
+                    $errors[] = 'Satır ' . ($rowNum + 2) . ': ' . $e->getMessage();
+                    if (count($errors) >= 10) {
+                        // Stop if too many errors
+                        break;
+                    }
                 }
+            }
+
+            if (!empty($errors)) {
+                http_response_code(400);
+                echo json_encode([
+                    'inserted' => $inserted,
+                    'message' => "Bazı satırlar yüklenmedi. Başarılı: $inserted. Hatalar: " . implode('; ', array_slice($errors, 0, 5))
+                ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                ob_end_flush();
+                error_log('[Muhasebe BulkUpload] Partial success: ' . $inserted . ' records, errors: ' . count($errors));
+                return;
             }
 
             http_response_code(200);

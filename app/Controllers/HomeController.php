@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Controllers;
@@ -10,8 +11,8 @@ class HomeController extends Controller
     public function index(): void
     {
         $this->view('home/index', [
-            'title' => 'Hoş geldin',
-            'message' => 'MVC iskelet çalışıyor!'
+            'title' => trans('common.welcome'),
+            'message' => 'Ozgur Denizlioglu'
         ]);
     }
 }

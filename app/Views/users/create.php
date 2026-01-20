@@ -2,13 +2,11 @@
 
 use App\Core\Helpers;
 
-ob_start();
-
 // Create için varsayılan/boş değerler
 
 $c = [
 
-'is_active' => true,
+    'is_active' => true,
 
 ];
 
@@ -27,7 +25,3 @@ $backUrl = '/users';
 $companies = $companies ?? [];
 
 include __DIR__ . '/_form.php';
-
-$content = ob_get_clean();
-
-include __DIR__ . '/../layouts/base.php';

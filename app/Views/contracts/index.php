@@ -262,31 +262,54 @@ use App\Core\Helpers;
       function generateContractTitle(contract) {
         if (!contract) return '';
 
-        // Sanitize and truncate helper
-        function sanitizeAndTruncate(str, length) {
-          if (!str) return '';
-          str = str.toUpperCase();
-          // Remove non-ASCII and keep only alphanumeric
-          str = str.replace(/[^A-Z0-9]/g, '');
-          return str.substring(0, length);
+        function extractProjectCode(text) {
+          if (!text) return 'XXXXXX';
+          text = text.toUpperCase();
+          text = text.replace(/[^A-Z0-9\s]/g, '');
+          text = text.trim();
+          if (!text) return 'XXXXXX';
+          const words = text.split(/\s+/).filter(w => w.length > 0);
+          if (words.length === 0) return 'XXXXXX';
+          if (words.length === 1) {
+            return (words[0] + 'XXXXXX').substring(0, 6);
+          }
+          const code = words[0].substring(0, 3) + words[1].substring(0, 3);
+          return (code + 'XXXXXX').substring(0, 6);
         }
 
-        const projectName = contract.project_name || 'PRJ';
-        const subject = contract.subject || 'SUBJ';
-        const companyName = contract.subcontractor_name || 'CONT';
-        const date = contract.contract_date || new Date().toISOString().split('T')[0];
+        function extractCode(text, length) {
+          if (!text) return 'X'.repeat(length);
+          text = text.toUpperCase();
+          text = text.replace(/[^A-Z0-9]/g, '');
+          if (!text) return 'X'.repeat(length);
+          return (text + 'X'.repeat(length)).substring(0, length);
+        }
 
-        const prj = sanitizeAndTruncate(projectName, 3);
-        const subj = sanitizeAndTruncate(subject, 8);
-        const subc = sanitizeAndTruncate(companyName, 8);
+        function formatDateForTitle(dateStr) {
+          if (!dateStr) return '00000000';
+          try {
+            const date = new Date(dateStr);
+            if (isNaN(date.getTime())) return '00000000';
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}${month}${day}`;
+          } catch (e) {
+            return '00000000';
+          }
+        }
 
-        // Format date as YYYYMMDD
-        const dateObj = new Date(date);
-        const dateStr = dateObj.getFullYear() +
-          String(dateObj.getMonth() + 1).padStart(2, '0') +
-          String(dateObj.getDate()).padStart(2, '0');
+        const projectName = contract.project_name || 'PROJECT';
+        const subject = contract.subject || '';
+        const subcontractorName = contract.subcontractor_company_name || contract.contractor_name || '';
+        const contractDate = contract.contract_date || '';
 
-        return `SZL_${prj}_${subj}_${subc}_${dateStr}`;
+        const prj = extractProjectCode(projectName);
+        const subj = extractCode(subject, 8);
+        const cont = extractCode(subcontractorName, 8);
+        const dateFormatted = formatDateForTitle(contractDate);
+
+        return `SZL_${prj}_${subj}_${cont}_${dateFormatted}`;
       }
 
       const DATA = <?= $contractsJson ?: '[]'; ?>;
@@ -735,11 +758,14 @@ use App\Core\Helpers;
       }
 
       function loadFilters() {
-        try {
-          return JSON.parse(localStorage.getItem(LS_KEYS.filters) || '{}');
-        } catch {
-          return {};
-        }
+        // Always start with no filters to show all data
+        // Filters will be preserved during the session but cleared on page refresh
+        return {};
+      }
+
+      function saveFiltersToStorage() {
+        // Save filters to localStorage for this session only
+        localStorage.setItem(LS_KEYS.filters, JSON.stringify(state.filters));
       }
 
       function loadSort() {
@@ -789,7 +815,7 @@ use App\Core\Helpers;
 
       function saveAll() {
         localStorage.setItem(LS_KEYS.visibleCols, JSON.stringify(state.visibleCols));
-        localStorage.setItem(LS_KEYS.filters, JSON.stringify(state.filters));
+        saveFiltersToStorage(); // Use the new storage function
         localStorage.setItem(LS_KEYS.sort, JSON.stringify(state.sort));
         localStorage.setItem(LS_KEYS.widths, JSON.stringify(state.widths));
         savePageAndLimit();
@@ -1504,13 +1530,73 @@ use App\Core\Helpers;
           const contracts = result.contracts || [];
           const payments = result.payments || [];
 
+          // Helper function to generate contract title dynamically
+          function generateContractTitleForExport(contract) {
+            if (!contract) return '';
+
+            function extractProjectCode(text) {
+              if (!text) return 'XXXXXX';
+              text = text.toUpperCase();
+              text = text.replace(/[^A-Z0-9\s]/g, '');
+              text = text.trim();
+              if (!text) return 'XXXXXX';
+              const words = text.split(/\s+/).filter(w => w.length > 0);
+              if (words.length === 0) return 'XXXXXX';
+              if (words.length === 1) {
+                return (words[0] + 'XXXXXX').substring(0, 6);
+              }
+              const code = words[0].substring(0, 3) + words[1].substring(0, 3);
+              return (code + 'XXXXXX').substring(0, 6);
+            }
+
+            function extractCode(text, length) {
+              if (!text) return 'X'.repeat(length);
+              text = text.toUpperCase();
+              text = text.replace(/[^A-Z0-9]/g, '');
+              if (!text) return 'X'.repeat(length);
+              return (text + 'X'.repeat(length)).substring(0, length);
+            }
+
+            function formatDateForTitle(dateStr) {
+              if (!dateStr) return '00000000';
+              try {
+                const date = new Date(dateStr);
+                if (isNaN(date.getTime())) return '00000000';
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                return `${year}${month}${day}`;
+              } catch (e) {
+                return '00000000';
+              }
+            }
+
+            const projectName = contract.project_name || 'PROJECT';
+            const subject = contract.subject || '';
+            const subcontractorName = contract.subcontractor_company_name || contract.contractor_name || '';
+            const contractDate = contract.contract_date || '';
+
+            const prj = extractProjectCode(projectName);
+            const subj = extractCode(subject, 8);
+            const cont = extractCode(subcontractorName, 8);
+            const dateFormatted = formatDateForTitle(contractDate);
+
+            return `SZL_${prj}_${subj}_${cont}_${dateFormatted}`;
+          }
+
+          // Generate titles for all contracts
+          const contractsWithTitles = contracts.map(c => ({
+            ...c,
+            contract_title: generateContractTitleForExport(c)
+          }));
+
           // Sheet 1: Contracts with total amounts
           const contractHeaders = [
             'ID', 'Sözleşme Başlığı', 'Proje', 'İşveren Firma', 'Yüklenici Firma',
             'Tarih', 'Bitiş Tariması', 'Konu', 'Tutar', 'Para Birimi', 'Durum'
           ];
 
-          const contractRows = contracts.map(c => [
+          const contractRows = contractsWithTitles.map(c => [
             c.id || '',
             c.contract_title || '',
             c.project_name || '',
@@ -1568,15 +1654,19 @@ use App\Core\Helpers;
             'Sözleşme ID', 'Sözleşme Başlığı', 'Toplam Tutar', 'Ödeme Türü', 'Vade Tarihi', 'Ödeme Tutarı', 'Para Birimi'
           ];
 
-          const paymentRows = payments.map(p => [
-            p.contract_id || '',
-            p.contract_title || '',
-            p.amount || '',
-            getPaymentType(p.type) || p.type || '',
-            p.due_date || '',
-            p.payment_amount || '',
-            p.currency || 'TRY'
-          ]);
+          const paymentRows = payments.map(p => {
+            // Find the corresponding contract to get the generated title
+            const contract = contractsWithTitles.find(c => c.id === p.contract_id);
+            return [
+              p.contract_id || '',
+              contract?.contract_title || p.contract_title || '',
+              p.amount || '',
+              getPaymentType(p.type) || p.type || '',
+              p.due_date || '',
+              p.payment_amount || '',
+              p.currency || 'TRY'
+            ];
+          });
 
           const paymentData = [paymentHeaders, ...paymentRows];
           const wsPayments = XLSX.utils.aoa_to_sheet(paymentData);
@@ -1611,23 +1701,27 @@ use App\Core\Helpers;
           XLSX.utils.book_append_sheet(wb, wsPayments, 'Ödemeler');
 
           // Add ListObject tables to both sheets for filtering and sorting
+          // Table must include header row (row 0) and all data rows
           if (contractRows.length > 0) {
+            // Range: from A1 (header) to last column and last data row
             const contractRange = XLSX.utils.encode_range({
               s: {
                 r: 0,
                 c: 0
               },
               e: {
-                r: contractRows.length,
+                r: contractRows.length, // contractRows.length gives us the correct end row (0-indexed header + data rows)
                 c: contractHeaders.length - 1
               }
             });
+
             if (!wsContracts['!tables']) wsContracts['!tables'] = [];
             wsContracts['!tables'].push({
               name: 'ContractTable',
               ref: contractRange,
+              totalsRow: false,
               tableStyleInfo: {
-                name: 'TableStyleMedium9',
+                name: 'TableStyleMedium2',
                 showFirstColumn: false,
                 showLastColumn: false,
                 showRowStripes: true,
@@ -1637,22 +1731,25 @@ use App\Core\Helpers;
           }
 
           if (paymentRows.length > 0) {
+            // Range: from A1 (header) to last column and last data row
             const paymentRange = XLSX.utils.encode_range({
               s: {
                 r: 0,
                 c: 0
               },
               e: {
-                r: paymentRows.length,
+                r: paymentRows.length, // paymentRows.length gives us the correct end row
                 c: paymentHeaders.length - 1
               }
             });
+
             if (!wsPayments['!tables']) wsPayments['!tables'] = [];
             wsPayments['!tables'].push({
               name: 'PaymentTable',
               ref: paymentRange,
+              totalsRow: false,
               tableStyleInfo: {
-                name: 'TableStyleMedium9',
+                name: 'TableStyleMedium2',
                 showFirstColumn: false,
                 showLastColumn: false,
                 showRowStripes: true,

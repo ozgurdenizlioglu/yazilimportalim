@@ -28,7 +28,7 @@ class FirmController extends Controller
     public function create(): void
     {
         $this->view('firms/create', [
-            'title' => 'Firma Ekle',
+            'title' => trans('common.add_firm'),
         ]);
     }
 
@@ -111,7 +111,7 @@ class FirmController extends Controller
         }
 
         $this->view('firms/edit', [
-            'title' => 'Firmayı Düzenle',
+            'title' => trans('common.edit_firm'),
             'firm' => $firm,
         ]);
     }

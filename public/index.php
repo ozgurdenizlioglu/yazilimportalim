@@ -15,6 +15,16 @@ use App\Controllers\ProjectController;
 use App\Controllers\ContractController;
 use App\Controllers\DisciplineController;
 use App\Controllers\MuhasebeController;
+use App\Controllers\BakiyeController;
+use App\Controllers\CostEstimationController;
+use App\Controllers\BarterController;
+use App\Controllers\CostCodeController;
+use App\Controllers\TevkifatController;
+use App\Controllers\ReportController;
+use App\Controllers\AdminController;
+use App\Controllers\DiagnosticController;
+use App\Controllers\BoqController;
+use App\Controllers\TutanakController;
 
 // .env yükle
 $root = dirname(__DIR__);
@@ -23,6 +33,15 @@ if (file_exists($root . '/.env')) {
     $dotenv->safeLoad();
 }
 
+// Session başlat
+session_start();
+
+// Dil yöneticisini başlat
+\App\Language\LanguageManager::init($root);
+
+// Load global helper functions (required for views)
+require_once __DIR__ . '/../app/Core/HelpersFunctions.php';
+
 // Hata gösterimi
 $debug = ($_ENV['APP_DEBUG'] ?? 'false') === 'true';
 ini_set('display_errors', $debug ? '1' : '0');
@@ -30,6 +49,19 @@ error_reporting($debug ? E_ALL : 0);
 
 // Config (gerekliyse)
 $config = require __DIR__ . '/../app/config.php';
+
+// Language switching handler
+if (isset($_GET['lang'])) {
+    $lang = $_GET['lang'];
+    if (in_array($lang, ['en', 'tr'])) {
+        setLanguage($lang);
+        // Redirect to referrer or home
+        $referrer = $_SERVER['HTTP_REFERER'] ?? '/';
+        $url = strtok($referrer, '?');
+        header("Location: {$url}");
+        exit;
+    }
+}
 
 // Router
 $router = new Router();
@@ -96,6 +128,7 @@ $router->get('/contracts/discipline-branch-list', [ContractController::class, 'd
 $router->get('/contracts/generate-word', [ContractController::class, 'generateWord']);
 $router->get('/contracts/generate-pdf', [ContractController::class, 'generatePdf']);
 $router->get('/contracts/get-uploaded-pdf', [ContractController::class, 'getUploadedPdf']);
+$router->get('/contracts/get-pdf-by-title', [ContractController::class, 'getPdfByTitle']);
 $router->get('/contracts/export-to-excel', [ContractController::class, 'exportToExcel']);
 $router->get('/contracts/template-data', [ContractController::class, 'templateData']);
 $router->get('/contracts/list-documents', [ContractController::class, 'listDocuments']);
@@ -124,12 +157,93 @@ $router->post('/api/disciplines/create-branch', [DisciplineController::class, 'c
 
 // Rotalar - muhasebe
 $router->get('/muhasebe', [MuhasebeController::class, 'index']);
+$router->get('/muhasebe/api/records', [MuhasebeController::class, 'apiRecords']);
 $router->get('/muhasebe/create', [MuhasebeController::class, 'create']);
 $router->post('/muhasebe/store', [MuhasebeController::class, 'store']);
 $router->get('/muhasebe/edit', [MuhasebeController::class, 'edit']); // ?id=...
 $router->post('/muhasebe/update', [MuhasebeController::class, 'update']);
 $router->post('/muhasebe/delete', [MuhasebeController::class, 'destroy']);
 $router->post('/muhasebe/bulk-upload', [MuhasebeController::class, 'bulkUpload']);
+
+// Rotalar - tevkifat
+$router->get('/tevkifat', [TevkifatController::class, 'index']);
+$router->get('/tevkifat/create', [TevkifatController::class, 'create']);
+$router->post('/tevkifat/store', [TevkifatController::class, 'store']);
+$router->get('/tevkifat/edit', [TevkifatController::class, 'edit']); // ?id=...
+$router->post('/tevkifat/update', [TevkifatController::class, 'update']);
+$router->get('/tevkifat/delete', [TevkifatController::class, 'delete']); // ?id=...
+$router->post('/tevkifat/bulkUpload', [TevkifatController::class, 'bulkUpload']);
+$router->get('/tevkifat/downloadTemplate', [TevkifatController::class, 'downloadTemplate']);
+
+// Rotalar - bakiye
+$router->get('/bakiye', [BakiyeController::class, 'index']);
+$router->get('/bakiye/api/records', [BakiyeController::class, 'apiRecords']);
+$router->get('/bakiye/create', [BakiyeController::class, 'create']);
+$router->post('/bakiye/store', [BakiyeController::class, 'store']);
+$router->get('/bakiye/edit', [BakiyeController::class, 'edit']); // ?id=...
+$router->post('/bakiye/update', [BakiyeController::class, 'update']);
+$router->post('/bakiye/delete', [BakiyeController::class, 'destroy']);
+$router->post('/bakiye/bulk-upload', [BakiyeController::class, 'bulkUpload']);
+
+// Rotalar - costestimation
+$router->get('/costestimation', [CostEstimationController::class, 'index']);
+$router->get('/costestimation/api/records', [CostEstimationController::class, 'apiRecords']);
+$router->get('/costestimation/get-projects', [CostEstimationController::class, 'getProjects']);
+$router->get('/costestimation/create', [CostEstimationController::class, 'create']);
+$router->post('/costestimation/store', [CostEstimationController::class, 'store']);
+$router->get('/costestimation/edit', [CostEstimationController::class, 'edit']); // ?id=...
+$router->post('/costestimation/update', [CostEstimationController::class, 'update']);
+$router->post('/costestimation/delete', [CostEstimationController::class, 'destroy']);
+$router->post('/costestimation/bulk-upload', [CostEstimationController::class, 'bulkUpload']);
+
+// Rotalar - tutanak
+$router->get('/tutanak', [TutanakController::class, 'index']);
+$router->get('/tutanak/create', [TutanakController::class, 'create']);
+$router->get('/tutanak/edit', [TutanakController::class, 'edit']); // ?id=...
+$router->post('/tutanak/store', [TutanakController::class, 'store']);
+$router->post('/tutanak/update', [TutanakController::class, 'update']);
+$router->post('/tutanak/delete', [TutanakController::class, 'delete']);
+
+// Rotalar - barter
+$router->get('/barter', [BarterController::class, 'index']);
+$router->get('/barter/api/records', [BarterController::class, 'apiRecords']);
+$router->get('/barter/get-projects', [BarterController::class, 'getProjects']);
+$router->get('/barter/create', [BarterController::class, 'create']);
+$router->post('/barter/store', [BarterController::class, 'store']);
+$router->get('/barter/edit', [BarterController::class, 'edit']); // ?id=...
+$router->post('/barter/update', [BarterController::class, 'update']);
+$router->post('/barter/delete', [BarterController::class, 'destroy']);
+$router->post('/barter/bulk-upload', [BarterController::class, 'bulkUpload']);
+
+// Rotalar - costcodes
+$router->get('/costcodes', [CostCodeController::class, 'index']);
+$router->get('/costcodes/api/records', [CostCodeController::class, 'apiRecords']);
+$router->get('/costcodes/create', [CostCodeController::class, 'create']);
+$router->post('/costcodes/store', [CostCodeController::class, 'store']);
+$router->get('/costcodes/edit', [CostCodeController::class, 'edit']); // ?id=...
+$router->post('/costcodes/update', [CostCodeController::class, 'update']);
+$router->post('/costcodes/delete', [CostCodeController::class, 'destroy']);
+$router->post('/costcodes/bulk-upload', [CostCodeController::class, 'bulkUpload']);
+$router->post('/costcodes/remove-duplicates', [CostCodeController::class, 'removeDuplicates']);
+
+// Rotalar - reports
+$router->get('/reports', [ReportController::class, 'index']);
+$router->get('/reports/dashboard', [ReportController::class, 'dashboard']);
+$router->get('/reports/debug', [ReportController::class, 'debug']);
+$router->get('/reports/export', [ReportController::class, 'export']);
+$router->get('/reports/project-image', [ReportController::class, 'projectImage']);
+
+// Diagnostic routes
+$router->get('/api/diagnostic/muhasebe', [DiagnosticController::class, 'muhasebeStatus']);
+
+// BOQ routes
+$router->get('/boq', [BoqController::class, 'index']);
+$router->post('/boq/upload', [BoqController::class, 'upload']);
+$router->post('/boq/import', [BoqController::class, 'import']);
+$router->post('/boq/delete', [BoqController::class, 'delete']);
+
+// Admin routes
+$router->post('/admin/update-muhasebe-aciklama', [AdminController::class, 'updateMuhasebeAciklama']);
 
 // İsteği çalıştır
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';

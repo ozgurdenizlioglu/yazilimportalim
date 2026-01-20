@@ -31,7 +31,7 @@ class UserController extends Controller
         $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         $this->view('users/index', [
-            'title' => 'Kullanıcılar',
+            'title' => trans('common.users'),
             'users' => $users,
         ]);
     }
@@ -42,7 +42,7 @@ class UserController extends Controller
         $companies = $this->listCompanies();
 
         $this->view('users/create', [
-            'title'      => 'Kullanıcı Ekle',
+            'title'      => trans('common.add_user'),
             'companies'  => $companies,
         ]);
     }
@@ -116,7 +116,7 @@ class UserController extends Controller
         $companies = $this->listCompanies();
 
         $this->view('users/edit', [
-            'title'      => 'Kullanıcıyı Düzenle',
+            'title'      => trans('common.edit_user'),
             'user'       => $user,
             'companies'  => $companies,
         ]);

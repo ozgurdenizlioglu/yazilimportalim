@@ -113,6 +113,17 @@ Desktop.ini
 Logs (geniş kapsam)
 .log.
 logs/**/*.log
+dwg-worker.log
+dwg-worker-test.log
+
+Working/project folders
+_CAD/
+_metraj/
+_POZTEXT2/
+
+Office temp lock files
+~$*.xlsm
+~$*.docx
 
 Cache (framework/genel)
 .cache/

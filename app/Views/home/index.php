@@ -45,11 +45,19 @@
         width: 1.25rem;
         height: 1.25rem;
         cursor: pointer;
-        transition: transform 0.2s ease;
+        transition: all 0.2s ease;
+        font-weight: bold;
+        font-size: 1.1rem;
+        line-height: 1;
     }
 
-    .tree-toggle.collapsed {
-        transform: rotate(-90deg);
+    .tree-toggle::before {
+        content: '−';
+        color: #007bff;
+    }
+
+    .tree-toggle.collapsed::before {
+        content: '+';
     }
 
     .tree-children {
@@ -97,57 +105,150 @@
             <!-- CONSTRUCTION -->
             <li>
                 <label class="tree-item-label" onclick="toggleTree(this)">
-                    <span class="tree-toggle">
-                        <i class="bi bi-chevron-down"></i>
-                    </span>
+                    <span class="tree-toggle"></span>
                     <i class="bi bi-hammer"></i>
-                    <strong>CONSTRUCTION</strong>
+                    <strong><?= trans('common.construction') ?></strong>
                 </label>
                 <ul class="tree-children">
                     <!-- TECHNICAL OFFICE -->
                     <li>
                         <label class="tree-item-label" onclick="toggleTree(this)">
-                            <span class="tree-toggle">
-                                <i class="bi bi-chevron-down"></i>
-                            </span>
+                            <span class="tree-toggle"></span>
                             <i class="bi bi-briefcase"></i>
-                            <strong>TECHNICAL OFFICE</strong>
+                            <strong><?= trans('common.technical_office') ?></strong>
                         </label>
                         <ul class="tree-children">
                             <li>
                                 <a href="/projects" class="tree-leaf">
                                     <i class="bi bi-diagram-3"></i>
-                                    Projects
+                                    <?= trans('common.projects') ?>
                                 </a>
                             </li>
                             <li>
                                 <a href="/firms" class="tree-leaf">
                                     <i class="bi bi-building"></i>
-                                    Companies
+                                    <?= trans('common.companies') ?>
                                 </a>
                             </li>
                             <li>
                                 <a href="/contracts" class="tree-leaf">
                                     <i class="bi bi-file-earmark-text"></i>
-                                    Contracts
+                                    <?= trans('common.contracts') ?>
                                 </a>
                             </li>
                             <li>
-                                <a href="/muhasebe" class="tree-leaf">
-                                    <i class="bi bi-calculator"></i>
-                                    Muhasebe
+                                <a href="#" class="tree-leaf">
+                                    <i class="bi bi-list-check"></i>
+                                    <?= trans('common.boq') ?>
                                 </a>
+                            </li>
+                            <li>
+                                <label class="tree-item-label" onclick="toggleTree(this)">
+                                    <span class="tree-toggle"></span>
+                                    <i class="bi bi-file-earmark-bar-graph"></i>
+                                    <strong><?= trans('common.reports') ?></strong>
+                                </label>
+                                <ul class="tree-children">
+                                    <li>
+                                        <a href="#" class="tree-leaf">
+                                            <i class="bi bi-calendar-day"></i>
+                                            <?= trans('common.daily_reports') ?>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="#" class="tree-leaf">
+                                            <i class="bi bi-calendar-week"></i>
+                                            <?= trans('common.weekly_reports') ?>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="#" class="tree-leaf">
+                                            <i class="bi bi-calendar-month"></i>
+                                            <?= trans('common.monthly_reports') ?>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </li>
+                            <li>
+                                <label class="tree-item-label" onclick="toggleTree(this)">
+                                    <span class="tree-toggle"></span>
+                                    <i class="bi bi-cash-flow"></i>
+                                    <strong><?= trans('common.progress_payment') ?></strong>
+                                </label>
+                                <ul class="tree-children">
+                                    <li>
+                                        <a href="#" class="tree-leaf">
+                                            <i class="bi bi-graph-up"></i>
+                                            <?= trans('common.progress_payment_report') ?>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="/tutanak" class="tree-leaf">
+                                            <i class="bi bi-clipboard-check"></i>
+                                            Tutanaklı İşler
+                                        </a>
+                                    </li>
+                                </ul>
+                            </li>
+                            <li>
+                                <label class="tree-item-label" onclick="toggleTree(this)">
+                                    <span class="tree-toggle"></span>
+                                    <i class="bi bi-piggy-bank"></i>
+                                    <strong><?= trans('common.cost_control') ?></strong>
+                                </label>
+                                <ul class="tree-children">
+                                    <li>
+                                        <a href="/muhasebe" class="tree-leaf">
+                                            <i class="bi bi-calculator"></i>
+                                            <?= trans('common.accounting') ?>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="/tevkifat" class="tree-leaf">
+                                            <i class="bi bi-receipt-cutoff"></i>
+                                            <?= trans('common.tevkifat') ?>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="/bakiye" class="tree-leaf">
+                                            <i class="bi bi-cash-coin"></i>
+                                            Bakiye
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="/costestimation" class="tree-leaf">
+                                            <i class="bi bi-receipt"></i>
+                                            <?= trans('common.cost_estimation') ?>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="/barter" class="tree-leaf">
+                                            <i class="bi bi-shuffle"></i>
+                                            <?= trans('common.barter') ?>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="/costcodes" class="tree-leaf">
+                                            <i class="bi bi-code-slash"></i>
+                                            <?= trans('common.cost_codes') ?>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="/reports" class="tree-leaf">
+                                            <i class="bi bi-graph-up"></i>
+                                            <?= trans('common.reports') ?>
+                                        </a>
+                                    </li>
+                                </ul>
                             </li>
                         </ul>
                     </li>
                     <!-- PURCHASING -->
                     <li>
                         <label class="tree-item-label" onclick="toggleTree(this)">
-                            <span class="tree-toggle">
-                                <i class="bi bi-chevron-down"></i>
-                            </span>
+                            <span class="tree-toggle"></span>
                             <i class="bi bi-cart"></i>
-                            <strong>PURCHASING</strong>
+                            <strong>Purchasing</strong>
                         </label>
                         <ul class="tree-children">
                             <li>
@@ -164,16 +265,36 @@
                             </li>
                         </ul>
                     </li>
+                    <!-- HR -->
+                    <li>
+                        <label class="tree-item-label" onclick="toggleTree(this)">
+                            <span class="tree-toggle"></span>
+                            <i class="bi bi-people"></i>
+                            <strong><?= trans('common.hr') ?></strong>
+                        </label>
+                        <ul class="tree-children">
+                            <li>
+                                <a href="/attendance/report" class="tree-leaf">
+                                    <i class="bi bi-clock"></i>
+                                    <?= trans('common.attendance') ?>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="/users" class="tree-leaf">
+                                    <i class="bi bi-person-lines-fill"></i>
+                                    <?= trans('common.users') ?>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
                 </ul>
             </li>
             <!-- APPOINTMENT -->
             <li>
                 <label class="tree-item-label" onclick="toggleTree(this)">
-                    <span class="tree-toggle collapsed">
-                        <i class="bi bi-chevron-down"></i>
-                    </span>
+                    <span class="tree-toggle collapsed"></span>
                     <i class="bi bi-calendar-event"></i>
-                    <strong>APPOINTMENT</strong>
+                    <strong>Appointment</strong>
                 </label>
                 <ul class="tree-children collapsed">
                     <li>
@@ -189,11 +310,6 @@
 </div>
 
 <hr>
-
-<!-- Users Section -->
-<div style="margin-top: 20px;">
-    <p><a href="/users" class="btn btn-outline-secondary btn-sm"><i class="bi bi-people me-1"></i>Kullanıcılar sayfasına git</a></p>
-</div>
 
 <script>
     function toggleTree(label) {

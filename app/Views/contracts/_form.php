@@ -190,7 +190,7 @@ $checked = function ($v) {
                 <label class="form-label">Sözleşme Başlığı (Otomatik)</label>
                 <div class="alert alert-info mb-3" role="alert">
                   <code style="font-size: 1.05rem; font-weight: 600; color: #0c63e4;" id="contractTitleDisplay">
-                    SZL_PRJ_SUBJ_SUBC_YYYYMMDD
+                    SZL_XXXXXX_XXXXXXXX_XXXXXXXX_YYYYMMDD
                   </code>
                 </div>
               </div>
@@ -1532,41 +1532,77 @@ $checked = function ($v) {
       // ------- Auto-generate contract title -------
       const contractTitleDisplay = document.getElementById('contractTitleDisplay');
       const projectNameInput = document.getElementById('project_name');
-      const subcontractorNameInput = document.getElementById('contractor_company_name');
       const subjectInput = document.querySelector('input[name="subject"]');
+      const contractorNameForTitle = document.getElementById('contractor_company_name');
+      // contractDateInput already declared above for payment section
+
+      function extractProjectCode(text) {
+        if (!text) return 'XXXXXX';
+
+        // Uppercase and remove non-alphanumeric
+        text = text.toUpperCase();
+        text = text.replace(/[^A-Z0-9\s]/g, '');
+        text = text.trim();
+
+        if (!text) return 'XXXXXX';
+
+        // Split by spaces
+        const words = text.split(/\s+/).filter(w => w.length > 0);
+
+        if (words.length === 0) return 'XXXXXX';
+
+        // Single word: take first 6 characters
+        if (words.length === 1) {
+          return (words[0] + 'XXXXXX').substring(0, 6);
+        }
+
+        // Multiple words: 3 chars from first + 3 chars from second
+        const code = words[0].substring(0, 3) + words[1].substring(0, 3);
+        return (code + 'XXXXXX').substring(0, 6);
+      }
+
+      function extractCode(text, length) {
+        if (!text) return 'X'.repeat(length);
+
+        // Uppercase and remove non-alphanumeric
+        text = text.toUpperCase();
+        text = text.replace(/[^A-Z0-9]/g, '');
+
+        if (!text) return 'X'.repeat(length);
+
+        // Pad with X if too short
+        return (text + 'X'.repeat(length)).substring(0, length);
+      }
+
+      function formatDateForTitle(dateStr) {
+        if (!dateStr) return '00000000';
+
+        try {
+          const date = new Date(dateStr);
+          if (isNaN(date.getTime())) return '00000000';
+
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const day = String(date.getDate()).padStart(2, '0');
+          return `${year}${month}${day}`;
+        } catch (e) {
+          return '00000000';
+        }
+      }
 
       function updateContractTitle() {
         const projectName = projectNameInput?.value || '';
-        const subjectText = subjectInput?.value || '';
-        const contractorName = subcontractorNameInput?.value || '';
+        const subject = subjectInput?.value || '';
+        const contractorName = contractorNameForTitle?.value || '';
         const contractDate = contractDateInput?.value || '';
 
-        // Helper function to sanitize and truncate like the backend does
-        function sanitizeAndTruncate(str, length) {
-          if (!str) return '';
-          str = str.toUpperCase();
-          // Remove non-ASCII and keep only alphanumeric
-          str = str.replace(/[^A-Z0-9]/g, '');
-          return str.substring(0, length);
-        }
+        // Extract codes
+        const prj = extractProjectCode(projectName);
+        const subj = extractCode(subject, 8);
+        const cont = extractCode(contractorName, 8);
+        const dateFormatted = formatDateForTitle(contractDate);
 
-        if (!projectName || !subjectText || !contractorName || !contractDate) {
-          return; // Don't update if any field is empty
-        }
-
-        // Use same sanitization as backend
-        const projectPart = sanitizeAndTruncate(projectName, 3);
-        const subjectPart = sanitizeAndTruncate(subjectText, 8);
-        const contractorPart = sanitizeAndTruncate(contractorName, 8);
-
-        // Format date as YYYYMMDD
-        const dateObj = new Date(contractDate);
-        const year = dateObj.getFullYear();
-        const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-        const day = String(dateObj.getDate()).padStart(2, '0');
-        const datePart = `${year}${month}${day}`;
-
-        const generatedTitle = `SZL_${projectPart}_${subjectPart}_${contractorPart}_${datePart}`;
+        const generatedTitle = `SZL_${prj}_${subj}_${cont}_${dateFormatted}`;
 
         if (contractTitleDisplay) {
           contractTitleDisplay.textContent = generatedTitle;
@@ -1575,9 +1611,16 @@ $checked = function ($v) {
 
       // Listen for changes to trigger title update
       projectNameInput?.addEventListener('change', updateContractTitle);
-      subcontractorNameInput?.addEventListener('change', updateContractTitle);
+      projectNameInput?.addEventListener('input', updateContractTitle);
       subjectInput?.addEventListener('change', updateContractTitle);
+      subjectInput?.addEventListener('input', updateContractTitle);
+      contractorNameForTitle?.addEventListener('change', updateContractTitle);
+      contractorNameForTitle?.addEventListener('input', updateContractTitle);
       contractDateInput?.addEventListener('change', updateContractTitle);
+      contractDateInput?.addEventListener('input', updateContractTitle);
+
+      // Initialize title display on page load
+      updateContractTitle();
 
       // Word ve PDF butonları (edit modu için)
       const contractId = '<?= Helpers::e((string)($c['id'] ?? '')) ?>';
@@ -1616,7 +1659,20 @@ $checked = function ($v) {
           return;
         }
         try {
-          // First try to show uploaded PDF if exists
+          // First try to show PDF by contract title if exists
+          const contractTitle = document.getElementById('contractTitleDisplay')?.value?.trim();
+          if (contractTitle && contractTitle !== 'SZL_XXXXXX_XXXXXXXX_XXXXXXXX_YYYYMMDD') {
+            const titleResponse = await fetch('/contracts/get-pdf-by-title?title=' + encodeURIComponent(contractTitle));
+            if (titleResponse.ok) {
+              const blob = await titleResponse.blob();
+              const url = URL.createObjectURL(blob);
+              window.open(url, '_blank');
+              setTimeout(() => URL.revokeObjectURL(url), 100);
+              return;
+            }
+          }
+
+          // Second, try to show uploaded PDF if exists
           const uploadedResponse = await fetch('/contracts/get-uploaded-pdf?id=' + encodeURIComponent(contractId));
           if (uploadedResponse.ok) {
             const blob = await uploadedResponse.blob();

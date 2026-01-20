@@ -2,8 +2,6 @@
 
 use App\Core\Helpers;
 
-ob_start();
-
 // Kaynaktan gelen kullanıcı verisini normalize et
 
 $raw = $user ?? [];
@@ -177,7 +175,3 @@ $baseUrl = rtrim($baseUrl, '/');
 </script>
 
 <?php
-
-$content = ob_get_clean();
-
-include __DIR__ . '/../layouts/base.php';

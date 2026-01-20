@@ -1338,11 +1338,22 @@ class ContractController extends Controller
         // Check if it's an Excel date (numeric format, usually 5 digits)
         if (is_numeric($s)) {
             $num = (float)$s;
-            // Excel dates are days since January 1, 1900 (must be positive)
+            // Excel dates are days since December 31, 1899 (Excel epoch)
+            // Serial 1 = January 1, 1900, so epoch is December 31, 1899
+            // Excel has a leap year bug: it treats 1900 as a leap year (it wasn't)
+            // So for dates >= 60 (March 1, 1900 and after), we need to subtract 1 day
             if ($num > 0 && $num < 60000) { // Reasonable range for Excel dates
-                // Convert Excel date to Unix timestamp
-                $excelEpoch = new \DateTime('1900-01-01');
-                $date = $excelEpoch->modify('+' . intval($num) . ' days');
+                // Excel epoch: December 31, 1899 (Serial 1 = January 1, 1900)
+                $excelEpoch = new \DateTime('1899-12-31');
+
+                // Account for Excel's leap year bug (Excel incorrectly includes Feb 29, 1900)
+                // If serial number is >= 60, subtract 1 to account for this fake leap day
+                $daysToAdd = intval($num);
+                if ($daysToAdd >= 60) {
+                    $daysToAdd--; // Adjust for the non-existent Feb 29, 1900
+                }
+
+                $date = $excelEpoch->modify('+' . $daysToAdd . ' days');
                 return $date->format('Y-m-d H:i:s');
             } else if ($num <= 0 || $num >= 60000) {
                 // Invalid numeric value
@@ -1350,7 +1361,7 @@ class ContractController extends Controller
             }
         }
 
-        // Try standard date parsing
+        // Try standard date parsing for text formats (YYYY-MM-DD, DD/MM/YYYY, MM/DD/YYYY, etc.)
         $ts = strtotime($s);
         if ($ts === false) return null;
         return date('Y-m-d H:i:s', $ts);
@@ -1794,6 +1805,38 @@ class ContractController extends Controller
             if (!file_exists($filepath)) {
                 http_response_code(404);
                 echo 'PDF file not found on disk';
+                return;
+            }
+
+            header('Content-Type: application/pdf');
+            header('Content-Disposition: inline; filename="' . basename($filepath) . '"');
+            header('Content-Length: ' . filesize($filepath));
+            readfile($filepath);
+        } catch (\Throwable $e) {
+            http_response_code(500);
+            echo 'Error: ' . $e->getMessage();
+        }
+    }
+
+    // Get PDF by contract title (check if file exists in storage)
+    public function getPdfByTitle(): void
+    {
+        try {
+            $contractTitle = trim($_GET['title'] ?? '');
+
+            if (empty($contractTitle)) {
+                http_response_code(400);
+                echo 'Contract title is required';
+                return;
+            }
+
+            // Build expected file path: storage/output/contracts/{title}/{title}.pdf
+            $contractFolderPath = $this->cfg['paths']['output'] . DIRECTORY_SEPARATOR . $contractTitle;
+            $filepath = $contractFolderPath . DIRECTORY_SEPARATOR . $contractTitle . '.pdf';
+
+            if (!file_exists($filepath)) {
+                http_response_code(404);
+                echo 'PDF file not found for this contract title';
                 return;
             }
 

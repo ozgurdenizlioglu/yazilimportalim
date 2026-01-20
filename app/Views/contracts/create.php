@@ -2,8 +2,6 @@
 
 use App\Core\Helpers;
 
-ob_start();
-
 $c = [
 
     'is_active' => true,
@@ -21,7 +19,3 @@ $showIdHidden = false;
 $backUrl = '/contracts';
 
 include __DIR__ . '/_form.php';
-
-$content = ob_get_clean();
-
-include __DIR__ . '/../layouts/base.php';

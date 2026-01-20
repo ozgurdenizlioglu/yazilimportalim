@@ -103,7 +103,7 @@ $currentCompanyId = isset($c['company_id']) ? (string)$c['company_id'] : '';
       <!-- Kimlik Bilgileri -->
       <div>
         <div class="card shadow-sm h-100 form-card">
-          <div class="card-header"><strong>Kimlik Bilgileri</strong></div>
+          <div class="card-header"><strong><?= Helpers::e('Kimlik Bilgileri') ?></strong></div>
           <div class="card-body">
             <div class="row">
               <div class="col-12">

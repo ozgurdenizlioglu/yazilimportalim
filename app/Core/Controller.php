@@ -6,7 +6,7 @@ namespace App\Core;
 
 class Controller
 {
-    protected function view(string $view, array $data = [], ?string $layout = 'layouts/main'): void
+    protected function view(string $view, array $data = [], ?string $layout = 'layouts/base'): void
     {
         extract($data, EXTR_SKIP);
         $viewFile = __DIR__ . '/../Views/' . $view . '.php';

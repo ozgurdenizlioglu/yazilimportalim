@@ -19,7 +19,7 @@ class ProjectController extends Controller
         $projects = Project::all($pdo); // deleted_at IS NULL filtreli
 
         $this->view('projects/index', [
-            'title' => 'Projeler',
+            'title' => trans('common.projects'),
             'projects' => $projects, // projects/index.php $projects bekler
         ]);
     }
@@ -34,7 +34,7 @@ class ProjectController extends Controller
         $companies = $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
 
         $this->view('projects/create', [
-            'title' => 'Proje Ekle',
+            'title' => trans('common.add_project'),
             'companies' => $companies,
         ]);
     }
@@ -110,7 +110,7 @@ class ProjectController extends Controller
         $companies = $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
 
         $this->view('projects/edit', [
-            'title' => 'Projeyi Düzenle',
+            'title' => trans('common.edit_project'),
             'project' => $project,
             'companies' => $companies,
         ]);

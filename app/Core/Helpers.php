@@ -35,3 +35,6 @@ final class Helpers
         return mb_strtoupper($value, 'UTF-8');
     }
 }
+
+// Global helper functions are in HelpersFunctions.php
+// They are automatically loaded in public/index.php

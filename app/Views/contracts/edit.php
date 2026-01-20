@@ -2,8 +2,6 @@
 
 use App\Core\Helpers;
 
-ob_start();
-
 $raw = $contract ?? [];
 
 $c = is_array($raw) ? $raw : (array)$raw;
@@ -19,7 +17,3 @@ $showIdHidden = true;
 $backUrl = '/contracts';
 
 include __DIR__ . '/_form.php';
-
-$content = ob_get_clean();
-
-include __DIR__ . '/../layouts/base.php';

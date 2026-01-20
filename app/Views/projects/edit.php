@@ -2,8 +2,6 @@
 
 use App\Core\Helpers;
 
-ob_start();
-
 $raw = $project ?? ($proj ?? ($c ?? []));
 $c = is_array($raw) ? $raw : (array)$raw;
 
@@ -18,7 +16,3 @@ $backUrl = '/projects';
 // $companies = [ 1 => 'ABC Teknoloji A.Ş.', 2 => 'XYZ Yazılım Ltd. Şti.' ];
 
 include __DIR__ . '/_form.php';
-
-$content = ob_get_clean();
-
-include __DIR__ . '/../layouts/base.php';

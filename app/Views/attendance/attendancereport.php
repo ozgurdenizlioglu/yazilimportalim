@@ -8,37 +8,37 @@ ob_start();
 
 <div class="d-flex justify-content-between align-items-center mb-3">
 
-<div>
+  <div>
 
-<h1 class="h4 m-0"><?= Helpers::e($title ?? 'Giriş/Çıkış Raporu') ?></h1>
+    <h1 class="h4 m-0"><?= Helpers::e($title ?? 'Giriş/Çıkış Raporu') ?></h1>
 
-<?php if (!empty($subtitle ?? null)): ?>
+    <?php if (!empty($subtitle ?? null)): ?>
 
-<div class="text-muted small"><?= Helpers::e($subtitle) ?></div>
+      <div class="text-muted small"><?= Helpers::e($subtitle) ?></div>
 
-<?php endif; ?>
+    <?php endif; ?>
 
-</div>
+  </div>
 
-<div class="d-flex flex-wrap gap-2">
+  <div class="d-flex flex-wrap gap-2">
 
-<button class="btn btn-outline-secondary" type="button" id="toggleColumnPanel"><i class="bi bi-columns-gap me-1"></i>Kolonları Yönet</button>
+    <button class="btn btn-outline-secondary" type="button" id="toggleColumnPanel"><i class="bi bi-columns-gap me-1"></i>Kolonları Yönet</button>
 
-<button class="btn btn-outline-secondary" type="button" id="resetView"><i class="bi bi-arrow-counterclockwise me-1"></i>Görünümü Sıfırla</button>
+    <button class="btn btn-outline-secondary" type="button" id="resetView"><i class="bi bi-arrow-counterclockwise me-1"></i>Görünümü Sıfırla</button>
 
-<button class="btn btn-success" type="button" id="exportExcel"><i class="bi bi-file-earmark-spreadsheet me-1"></i>Excele Aktar</button>
+    <button class="btn btn-success" type="button" id="exportExcel"><i class="bi bi-file-earmark-spreadsheet me-1"></i>Excele Aktar</button>
 
-<button class="btn btn-outline-primary" type="button" id="downloadTemplate"><i class="bi bi-download me-1"></i>Şablon İndir</button>
+    <button class="btn btn-outline-primary" type="button" id="downloadTemplate"><i class="bi bi-download me-1"></i>Şablon İndir</button>
 
-<label class="btn btn-outline-secondary mb-0">
+    <label class="btn btn-outline-secondary mb-0">
 
-<i class="bi bi-upload me-1"></i>Upload Et
+      <i class="bi bi-upload me-1"></i>Upload Et
 
-<input type="file" id="uploadFile" accept=".xlsx,.xls,.csv" hidden>
+      <input type="file" id="uploadFile" accept=".xlsx,.xls,.csv" hidden>
 
-</label>
+    </label>
 
-</div>
+  </div>
 
 </div>
 
@@ -50,593 +50,777 @@ $rowsJson = json_encode($rows ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLA
 
 <?php if (!empty($rows)): ?>
 
-<div class="card shadow-sm">
+  <div class="card shadow-sm">
 
-<div class="card-body p-0">
+    <div class="card-body p-0">
 
-<div class="table-wrap p-2 pt-0">
+      <div class="table-wrap p-2 pt-0">
 
-<div id="columnPanel" class="column-panel card card-body py-2 mb-2" hidden>
+        <div id="columnPanel" class="column-panel card card-body py-2 mb-2" hidden>
 
-<div class="d-flex align-items-center justify-content-between">
+          <div class="d-flex align-items-center justify-content-between">
 
-<strong>Görünen Kolonlar</strong>
+            <strong>Görünen Kolonlar</strong>
 
-<div class="d-flex align-items-center gap-2">
+            <div class="d-flex align-items-center gap-2">
 
-<label class="form-label m-0 small text-muted" for="pageSizeSelect">Bir sayfada</label>
+              <label class="form-label m-0 small text-muted" for="pageSizeSelect">Bir sayfada</label>
 
-<select id="pageSizeSelect" class="form-select form-select-sm" style="width:auto;">
+              <select id="pageSizeSelect" class="form-select form-select-sm" style="width:auto;">
 
-<option value="20">20 satır</option>
+                <option value="20">20 satır</option>
 
-<option value="50">50 satır</option>
+                <option value="50">50 satır</option>
 
-<option value="100">100 satır</option>
+                <option value="100">100 satır</option>
 
-<option value="200">200 satır</option>
+                <option value="200">200 satır</option>
 
-<option value="500">500 satır</option>
+                <option value="500">500 satır</option>
 
-</select>
+              </select>
 
-</div>
+            </div>
 
-</div>
+          </div>
 
-<hr class="my-2">
+          <hr class="my-2">
 
-<div id="columnCheckboxes" class="columns-grid"></div>
+          <div id="columnCheckboxes" class="columns-grid"></div>
 
-</div>
-<div class="table-responsive">
-    <table class="table table-hover align-middle mb-0" id="attTable">
-      <colgroup id="colGroup"></colgroup>
-      <thead id="tableHead">
-        <tr id="filtersRow"></tr>
-        <tr id="headerRow"></tr>
-      </thead>
-      <tbody id="tableBody"></tbody>
-    </table>
-  </div>
-
-  <!-- Upload önizleme modal -->
-  <div class="modal fade" id="uploadModal" tabindex="-1" aria-labelledby="uploadModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-scrollable">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 id="uploadModalLabel" class="modal-title">Yükleme Önizleme</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
         </div>
-        <div class="modal-body">
-          <div id="uploadPreview" class="upload-preview">Dosya okunuyor…</div>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0" id="attTable">
+            <colgroup id="colGroup"></colgroup>
+            <thead id="tableHead">
+              <tr id="filtersRow"></tr>
+              <tr id="headerRow"></tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+          </table>
         </div>
-        <div class="modal-footer">
-          <form id="uploadSubmitForm" method="post" action="/attendance/bulk-upload" enctype="multipart/form-data" class="ms-auto">
-            <input type="hidden" name="payload" id="uploadPayload">
-            <button class="btn btn-primary" type="submit"><i class="bi bi-cloud-upload me-1"></i>Sunucuya Yükle</button>
-          </form>
+
+        <!-- Upload önizleme modal -->
+        <div class="modal fade" id="uploadModal" tabindex="-1" aria-labelledby="uploadModalLabel" aria-hidden="true">
+          <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 id="uploadModalLabel" class="modal-title">Yükleme Önizleme</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+              </div>
+              <div class="modal-body">
+                <div id="uploadPreview" class="upload-preview">Dosya okunuyor…</div>
+              </div>
+              <div class="modal-footer">
+                <form id="uploadSubmitForm" method="post" action="/attendance/bulk-upload" enctype="multipart/form-data" class="ms-auto">
+                  <input type="hidden" name="payload" id="uploadPayload">
+                  <button class="btn btn-primary" type="submit"><i class="bi bi-cloud-upload me-1"></i>Sunucuya Yükle</button>
+                </form>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
+
+      </div> <!-- table-wrap -->
+    </div> <!-- card-body -->
+
+    <div class="card-footer d-flex flex-wrap gap-2 align-items-center">
+
+      <div class="text-muted small" id="footerStats">Toplam: <strong>0</strong> | Sayfa: 1/1</div>
+
+      <div class="ms-auto"></div>
+
+      <nav>
+
+        <ul class="pagination mb-0" id="pager">
+
+          <li class="page-item"><a class="page-link" href="#" data-page="first">« İlk</a></li>
+
+          <li class="page-item"><a class="page-link" href="#" data-page="prev">‹ Önceki</a></li>
+
+          <li class="page-item disabled"><span class="page-link" id="pageIndicator">1 / 1</span></li>
+
+          <li class="page-item"><a class="page-link" href="#" data-page="next">Sonraki ›</a></li>
+
+          <li class="page-item"><a class="page-link" href="#" data-page="last">Son »</a></li>
+
+        </ul>
+
+      </nav>
+
     </div>
-  </div>
 
-</div> <!-- table-wrap -->
-</div> <!-- card-body -->
+  </div> <!-- card -->
 
-<div class="card-footer d-flex flex-wrap gap-2 align-items-center">
+  <style>
+    .columns-grid {
 
-<div class="text-muted small" id="footerStats">Toplam: <strong>0</strong> | Sayfa: 1/1</div>
+      display: grid;
 
-<div class="ms-auto"></div>
+      grid-template-columns: repeat(2, minmax(180px, 1fr));
 
-<nav>
+      gap: .35rem .75rem;
 
-<ul class="pagination mb-0" id="pager">
+    }
 
-<li class="page-item"><a class="page-link" href="#" data-page="first">« İlk</a></li>
+    @media (min-width: 576px) {
+      .columns-grid {
+        grid-template-columns: repeat(3, minmax(180px, 1fr));
+      }
+    }
 
-<li class="page-item"><a class="page-link" href="#" data-page="prev">‹ Önceki</a></li>
+    @media (min-width: 768px) {
+      .columns-grid {
+        grid-template-columns: repeat(4, minmax(180px, 1fr));
+      }
+    }
 
-<li class="page-item disabled"><span class="page-link" id="pageIndicator">1 / 1</span></li>
+    @media (min-width: 992px) {
+      .columns-grid {
+        grid-template-columns: repeat(5, minmax(180px, 1fr));
+      }
+    }
 
-<li class="page-item"><a class="page-link" href="#" data-page="next">Sonraki ›</a></li>
+    @media (min-width: 1200px) {
+      .columns-grid {
+        grid-template-columns: repeat(6, minmax(180px, 1fr));
+      }
+    }
 
-<li class="page-item"><a class="page-link" href="#" data-page="last">Son »</a></li>
+    #attTable {
 
-</ul>
+      table-layout: auto;
 
-</nav>
+      border-collapse: separate;
 
-</div>
+      border-spacing: 0;
 
-</div> <!-- card -->
+    }
 
-<style>
+    #attTable thead {
+      vertical-align: bottom;
+    }
 
-.columns-grid {
+    #attTable thead th {
 
-display: grid;
+      position: relative;
 
-grid-template-columns: repeat(2, minmax(180px, 1fr));
+      background-clip: padding-box;
 
-gap: .35rem .75rem;
+      white-space: nowrap;
 
-}
+    }
 
-@media (min-width: 576px) { .columns-grid { grid-template-columns: repeat(3, minmax(180px, 1fr)); } }
+    #attTable thead tr#filtersRow th {
 
-@media (min-width: 768px) { .columns-grid { grid-template-columns: repeat(4, minmax(180px, 1fr)); } }
+      padding: .25rem .5rem;
 
-@media (min-width: 992px) { .columns-grid { grid-template-columns: repeat(5, minmax(180px, 1fr)); } }
+      border-bottom: 0 !important;
 
-@media (min-width: 1200px){ .columns-grid { grid-template-columns: repeat(6, minmax(180px, 1fr)); } }
+    }
 
-#attTable {
+    #attTable thead tr#headerRow th {
 
-table-layout: auto;
+      padding-top: .25rem;
 
-border-collapse: separate;
+      padding-bottom: .4rem;
 
-border-spacing: 0;
+      border-bottom: 1px solid var(--bs-border-color) !important;
 
-}
+      vertical-align: bottom;
 
-#attTable thead { vertical-align: bottom; }
+    }
 
-#attTable thead th {
+    #attTable thead .filter-cell>* {
 
-position: relative;
+      display: block;
 
-background-clip: padding-box;
+      width: 100%;
 
-white-space: nowrap;
+      max-width: 100%;
 
-}
+      margin: 0;
 
-#attTable thead tr#filtersRow th {
+    }
 
-padding: .25rem .5rem;
+    #attTable thead input.form-control-sm,
 
-border-bottom: 0 !important;
+    #attTable thead select.form-select-sm {
 
-}
+      min-height: 32px;
 
-#attTable thead tr#headerRow th {
+      line-height: 1.2;
 
-padding-top: .25rem;
+    }
 
-padding-bottom: .4rem;
+    #attTable th.col-actions {
+      padding-left: .25rem;
+      padding-right: .25rem;
+    }
 
-border-bottom: 1px solid var(--bs-border-color) !important;
+    #attTable th .col-resizer {
 
-vertical-align: bottom;
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 10px;
+      height: 100%;
 
-}
+      cursor: col-resize;
+      user-select: none;
+      -webkit-user-select: none;
 
-#attTable thead .filter-cell > * {
+    }
 
-display: block;
+    #attTable th.resizing,
 
-width: 100%;
+    #attTable th .col-resizer.active {
 
-max-width: 100%;
+      background-image: linear-gradient(to bottom, rgba(45, 108, 223, .15), rgba(45, 108, 223, .15));
 
-margin: 0;
+      background-repeat: no-repeat;
+      background-position: right center;
+      background-size: 2px 100%;
 
-}
+    }
 
-#attTable thead input.form-control-sm,
+    .btn-icon {
 
-#attTable thead select.form-select-sm {
+      --btn-size: 28px;
+      width: var(--btn-size);
+      height: var(--btn-size);
 
-min-height: 32px;
+      padding: 0 !important;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: .25rem;
 
-line-height: 1.2;
+    }
 
-}
+    .btn-icon.btn-light {
+      border: 1px solid (var(--bs-border-color));
+    }
 
-#attTable th.col-actions { padding-left: .25rem; padding-right: .25rem; }
+    .btn-icon i {
+      font-size: 14px;
+    }
 
-#attTable th .col-resizer {
+    #attTable td .btn-group {
+      gap: 4px;
+    }
 
-position: absolute; top: 0; right: 0; width: 10px; height: 100%;
+    #attTable td .btn-group .btn {
+      border-width: 1px;
+    }
 
-cursor: col-resize; user-select: none; -webkit-user-select: none;
+    #attTable thead th.sortable {
+      cursor: pointer;
+    }
 
-}
+    #attTable thead th.sortable[data-sort="asc"]::after {
+      content: " ↑";
+      opacity: .6;
+    }
 
-#attTable th.resizing,
+    #attTable thead th.sortable[data-sort="desc"]::after {
+      content: " ↓";
+      opacity: .6;
+    }
 
-#attTable th .col-resizer.active {
+    /* Rozetler */
 
-background-image: linear-gradient(to bottom, rgba(45,108,223,.15), rgba(45,108,223,.15));
+    .badge.ok {
+      background: var(--bs-success-bg-subtle, #d1e7dd);
+      color: var(--bs-success-text, #0f5132);
+      border: 1px solid var(--bs-success-border-subtle, #badbcc);
+    }
 
-background-repeat: no-repeat; background-position: right center; background-size: 2px 100%;
+    .badge.no {
+      background: var(--bs-danger-bg-subtle, #f8d7da);
+      color: var(--bs-danger-text, #842029);
+      border: 1px solid var(--bs-danger-border-subtle, #f5c2c7);
+    }
+  </style>
 
-}
+  <?php ob_start(); ?>
 
-.btn-icon {
+  <script>
+    (function() {
 
---btn-size: 28px; width: var(--btn-size); height: var(--btn-size);
+      // Veri
 
-padding: 0 !important; display: inline-flex; align-items: center; justify-content: center; border-radius: .25rem;
+      const DATA = <?= $rowsJson ?: '[]' ?>;
 
-}
+      // Alanlar (export/template/upload için)
 
-.btn-icon.btn-light { border: 1px solid (var(--bs-border-color)); }
+      const allFields = [
 
-.btn-icon i { font-size: 14px; }
+        {
+          id: 'id',
+          label: 'ID'
+        },
 
-#attTable td .btn-group { gap: 4px; }
+        {
+          id: 'scanned_at',
+          label: 'Zaman'
+        },
+
+        {
+          id: 'type',
+          label: 'Tür'
+        }, // in|out
+
+        {
+          id: 'user_id',
+          label: 'User ID'
+        },
+
+        {
+          id: 'first_name',
+          label: 'Ad'
+        },
+
+        {
+          id: 'last_name',
+          label: 'Soyad'
+        },
+
+        {
+          id: 'company_id',
+          label: 'Firma ID'
+        },
+
+        {
+          id: 'company_name',
+          label: 'Firma'
+        },
+
+        {
+          id: 'source_device',
+          label: 'Cihaz'
+        },
+
+        {
+          id: 'notes',
+          label: 'Notlar'
+        },
+
+        {
+          id: 'created_at',
+          label: 'Oluşturma'
+        },
+
+        {
+          id: 'updated_at',
+          label: 'Güncelleme'
+        },
 
-#attTable td .btn-group .btn { border-width: 1px; }
+      ];
 
-#attTable thead th.sortable { cursor: pointer; }
+      // Kolonlar (UI)
 
-#attTable thead th.sortable[data-sort="asc"]::after { content: " ↑"; opacity: .6; }
+      const columns = [
 
-#attTable thead th.sortable[data-sort="desc"]::after { content: " ↓"; opacity: .6; }
+        {
+          id: 'id',
+          label: 'ID',
+          filterType: 'text',
+          className: 'text-end'
+        },
 
-/* Rozetler */
+        {
+          id: 'scanned_at',
+          label: 'Zaman',
+          filterType: 'date'
+        },
 
-.badge.ok { background: var(--bs-success-bg-subtle, #d1e7dd); color: var(--bs-success-text, #0f5132); border: 1px solid var(--bs-success-border-subtle, #badbcc); }
+        {
+          id: 'type',
+          label: 'Tür',
+          filterType: 'text'
+        },
 
-.badge.no { background: var(--bs-danger-bg-subtle, #f8d7da); color: var(--bs-danger-text, #842029); border: 1px solid var(--bs-danger-border-subtle, #f5c2c7); }
+        {
+          id: 'first_name',
+          label: 'Ad',
+          filterType: 'text'
+        },
 
-</style>
+        {
+          id: 'last_name',
+          label: 'Soyad',
+          filterType: 'text'
+        },
 
-<?php ob_start(); ?>
+        {
+          id: 'company_name',
+          label: 'Firma',
+          filterType: 'text'
+        },
 
-<script>
+        {
+          id: 'company_id',
+          label: 'Firma ID',
+          filterType: 'text',
+          className: 'text-end'
+        },
 
-(function() {
+        {
+          id: 'source_device',
+          label: 'Cihaz',
+          filterType: 'text'
+        },
 
-// Veri
+        {
+          id: 'notes',
+          label: 'Notlar',
+          filterType: 'text'
+        },
 
-const DATA = <?= $rowsJson ?: '[]' ?>;
+        {
+          id: 'user_id',
+          label: 'User ID',
+          filterType: 'text',
+          className: 'text-end'
+        },
 
-// Alanlar (export/template/upload için)
+        {
+          id: 'created_at',
+          label: 'Oluşturma',
+          filterType: 'date'
+        },
 
-const allFields = [
+        {
+          id: 'updated_at',
+          label: 'Güncelleme',
+          filterType: 'date'
+        },
 
-{ id:'id', label:'ID' },
+      ];
 
-{ id:'scanned_at', label:'Zaman' },
+      const defaultVisible = ['id', 'scanned_at', 'type', 'first_name', 'last_name', 'company_name', 'source_device', 'notes'];
 
-{ id:'type', label:'Tür' }, // in|out
+      const LS_KEYS = {
 
-{ id:'user_id', label:'User ID' },
+        visibleCols: 'att.visibleCols',
 
-{ id:'first_name', label:'Ad' },
+        filters: 'att.filters',
 
-{ id:'last_name', label:'Soyad' },
+        sort: 'att.sort',
 
-{ id:'company_id', label:'Firma ID' },
+        widths: 'att.widths',
 
-{ id:'company_name', label:'Firma' },
+        page: 'att.page',
 
-{ id:'source_device', label:'Cihaz' },
+        limit: 'att.limit'
 
-{ id:'notes', label:'Notlar' },
+      };
 
-{ id:'created_at', label:'Oluşturma' },
+      // DOM
 
-{ id:'updated_at', label:'Güncelleme' },
+      const table = document.getElementById('attTable');
 
-];
+      const thead = document.getElementById('tableHead');
 
-// Kolonlar (UI)
+      const tbody = document.getElementById('tableBody');
 
-const columns = [
+      const headerRow = document.getElementById('headerRow');
 
-{ id:'id', label:'ID', filterType:'text', className:'text-end' },
+      const filtersRow = document.getElementById('filtersRow');
 
-{ id:'scanned_at', label:'Zaman', filterType:'date' },
+      const colGroup = document.getElementById('colGroup');
 
-{ id:'type', label:'Tür', filterType:'text' },
+      const columnPanel = document.getElementById('columnPanel');
 
-{ id:'first_name', label:'Ad', filterType:'text' },
+      const columnCheckboxes = document.getElementById('columnCheckboxes');
 
-{ id:'last_name', label:'Soyad', filterType:'text' },
+      const footerStats = document.getElementById('footerStats');
 
-{ id:'company_name', label:'Firma', filterType:'text' },
+      const pager = document.getElementById('pager');
 
-{ id:'company_id', label:'Firma ID', filterType:'text', className:'text-end' },
+      const pageIndicator = document.getElementById('pageIndicator');
 
-{ id:'source_device', label:'Cihaz', filterType:'text' },
+      const pageSizeSelect = document.getElementById('pageSizeSelect');
 
-{ id:'notes', label:'Notlar', filterType:'text' },
+      // State
 
-{ id:'user_id', label:'User ID', filterType:'text', className:'text-end' },
+      let state = {
 
-{ id:'created_at', label:'Oluşturma', filterType:'date' },
+        visibleCols: loadVisibleCols(),
 
-{ id:'updated_at', label:'Güncelleme', filterType:'date' },
+        filters: loadFilters(),
 
-];
+        sort: loadSort(),
 
-const defaultVisible = ['id','scanned_at','type','first_name','last_name','company_name','source_device','notes'];
+        widths: loadWidths(),
 
-const LS_KEYS = {
+        page: loadPage(),
 
-visibleCols: 'att.visibleCols',
+        limit: loadLimit()
 
-filters: 'att.filters',
+      };
 
-sort: 'att.sort',
+      // UI eventleri
 
-widths: 'att.widths',
+      document.getElementById('toggleColumnPanel').addEventListener('click', () => columnPanel.hidden = !columnPanel.hidden);
 
-page: 'att.page',
+      document.getElementById('resetView').addEventListener('click', () => {
 
-limit: 'att.limit'
+        state.visibleCols = [...defaultVisible];
 
-};
+        state.filters = {};
 
-// DOM
+        state.sort = {
+          by: 'scanned_at',
+          dir: 'desc'
+        };
 
-const table = document.getElementById('attTable');
+        state.widths = {};
 
-const thead = document.getElementById('tableHead');
+        state.page = 1;
 
-const tbody = document.getElementById('tableBody');
+        state.limit = 50;
 
-const headerRow = document.getElementById('headerRow');
+        saveAll();
+        buildColumnPanel();
+        rebuildHeadAndCols();
+        render();
 
-const filtersRow = document.getElementById('filtersRow');
+      });
 
-const colGroup = document.getElementById('colGroup');
+      document.getElementById('downloadTemplate').addEventListener('click', downloadTemplate);
 
-const columnPanel = document.getElementById('columnPanel');
+      document.getElementById('exportExcel').addEventListener('click', exportAllToCsv);
 
-const columnCheckboxes = document.getElementById('columnCheckboxes');
+      document.getElementById('uploadFile').addEventListener('change', handleUpload);
 
-const footerStats = document.getElementById('footerStats');
+      // Pager
 
-const pager = document.getElementById('pager');
+      pager.addEventListener('click', (e) => {
 
-const pageIndicator = document.getElementById('pageIndicator');
+        const a = e.target.closest('a[data-page]');
 
-const pageSizeSelect = document.getElementById('pageSizeSelect');
+        if (!a) return;
 
-// State
+        e.preventDefault();
 
-let state = {
+        const action = a.dataset.page;
 
-visibleCols: loadVisibleCols(),
+        const {
+          totalPages
+        } = currentTotals();
 
-filters: loadFilters(),
+        if (action === 'first') state.page = 1;
 
-sort: loadSort(),
+        else if (action === 'prev') state.page = Math.max(1, state.page - 1);
 
-widths: loadWidths(),
+        else if (action === 'next') state.page = Math.min(totalPages, state.page + 1);
 
-page: loadPage(),
+        else if (action === 'last') state.page = totalPages;
 
-limit: loadLimit()
+        savePageAndLimit();
 
-};
+        render();
 
-// UI eventleri
+      });
 
-document.getElementById('toggleColumnPanel').addEventListener('click', () => columnPanel.hidden = !columnPanel.hidden);
+      initPageSizeSelect();
 
-document.getElementById('resetView').addEventListener('click', () => {
+      pageSizeSelect.addEventListener('change', () => {
 
-state.visibleCols = [...defaultVisible];
+        state.limit = Number(pageSizeSelect.value) || 50;
 
-state.filters = {};
+        state.page = 1;
 
-state.sort = { by: 'scanned_at', dir: 'desc' };
+        savePageAndLimit();
 
-state.widths = {};
+        render();
 
-state.page = 1;
+      });
 
-state.limit = 50;
+      // Başlat
 
-saveAll(); buildColumnPanel(); rebuildHeadAndCols(); render();
+      buildColumnPanel();
 
-});
+      rebuildHeadAndCols();
 
-document.getElementById('downloadTemplate').addEventListener('click', downloadTemplate);
+      render();
 
-document.getElementById('exportExcel').addEventListener('click', exportAllToCsv);
+      // Storage
 
-document.getElementById('uploadFile').addEventListener('change', handleUpload);
+      function loadVisibleCols() {
 
-// Pager
+        try {
 
-pager.addEventListener('click', (e)=>{
+          const raw = localStorage.getItem(LS_KEYS.visibleCols);
 
-const a = e.target.closest('a[data-page]');
+          const arr = raw ? JSON.parse(raw) : null;
 
-if (!a) return;
+          let cols = arr && Array.isArray(arr) ? arr : defaultVisible;
 
-e.preventDefault();
+          cols = cols.filter(id => columns.some(c => c.id === id));
 
-const action = a.dataset.page;
+          return cols;
 
-const { totalPages } = currentTotals();
+        } catch {
+          return [...defaultVisible];
+        }
 
-if (action === 'first') state.page = 1;
+      }
 
-else if (action === 'prev') state.page = Math.max(1, state.page - 1);
+      function loadFilters() {
+        // Always start with no filters to show all data
+        // Filters will be preserved during the session but cleared on page refresh
+        return {};
+      }
 
-else if (action === 'next') state.page = Math.min(totalPages, state.page + 1);
+      function saveFiltersToStorage() {
+        // Save filters to localStorage for this session only
+        localStorage.setItem(LS_KEYS.filters, JSON.stringify(state.filters));
+      }
 
-else if (action === 'last') state.page = totalPages;
+      function loadSort() {
 
-savePageAndLimit();
+        try {
 
-render();
+          const s = JSON.parse(localStorage.getItem(LS_KEYS.sort) || '{"by":"scanned_at","dir":"desc"}');
 
-});
+          return columns.find(c => c.id === s.by) ? s : {
+            by: 'scanned_at',
+            dir: 'desc'
+          };
 
-initPageSizeSelect();
+        } catch {
+          return {
+            by: 'scanned_at',
+            dir: 'desc'
+          };
+        }
 
-pageSizeSelect.addEventListener('change', ()=>{
+      }
 
-state.limit = Number(pageSizeSelect.value) || 50;
+      function loadWidths() {
+        try {
+          return JSON.parse(localStorage.getItem(LS_KEYS.widths) || '{}') || {};
+        } catch {
+          return {};
+        }
+      }
 
-state.page = 1;
+      function loadPage() {
 
-savePageAndLimit();
+        try {
 
-render();
+          const fromQs = Number(new URLSearchParams(location.search).get('page'));
 
-});
+          if (!Number.isNaN(fromQs) && fromQs > 0) return fromQs;
 
-// Başlat
+          const p = Number(localStorage.getItem(LS_KEYS.page));
 
-buildColumnPanel();
+          return !Number.isNaN(p) && p > 0 ? p : 1;
 
-rebuildHeadAndCols();
+        } catch {
+          return 1;
+        }
 
-render();
+      }
 
-// Storage
+      function loadLimit() {
 
-function loadVisibleCols(){
+        try {
 
-try {
+          const fromQs = Number(new URLSearchParams(location.search).get('limit'));
 
-const raw = localStorage.getItem(LS_KEYS.visibleCols);
+          if (!Number.isNaN(fromQs) && fromQs > 0) return fromQs;
 
-const arr = raw ? JSON.parse(raw) : null;
+          const l = Number(localStorage.getItem(LS_KEYS.limit));
 
-let cols = arr && Array.isArray(arr) ? arr : defaultVisible;
+          return !Number.isNaN(l) && l > 0 ? l : 50;
 
-cols = cols.filter(id => columns.some(c => c.id === id));
+        } catch {
+          return 50;
+        }
 
-return cols;
+      }
 
-} catch { return [...defaultVisible]; }
+      function saveAll() {
 
-}
+        localStorage.setItem(LS_KEYS.visibleCols, JSON.stringify(state.visibleCols));
 
-function loadFilters(){ try { return JSON.parse(localStorage.getItem(LS_KEYS.filters) || '{}'); } catch { return {}; } }
+        saveFiltersToStorage(); // Use the new storage function
 
-function loadSort(){
+        localStorage.setItem(LS_KEYS.sort, JSON.stringify(state.sort));
 
-try {
+        localStorage.setItem(LS_KEYS.widths, JSON.stringify(state.widths));
 
-const s = JSON.parse(localStorage.getItem(LS_KEYS.sort) || '{"by":"scanned_at","dir":"desc"}');
+        savePageAndLimit();
 
-return columns.find(c=>c.id===s.by) ? s : { by:'scanned_at', dir:'desc' };
+      }
 
-} catch { return { by:'scanned_at', dir:'desc' }; }
+      function savePageAndLimit() {
 
-}
+        localStorage.setItem(LS_KEYS.page, String(state.page));
 
-function loadWidths(){ try { return JSON.parse(localStorage.getItem(LS_KEYS.widths) || '{}') || {}; } catch { return {}; } }
+        localStorage.setItem(LS_KEYS.limit, String(state.limit));
 
-function loadPage(){
+      }
 
-try {
+      // Yapı koruması
 
-const fromQs = Number(new URLSearchParams(location.search).get('page'));
+      function normalizeTableStructure() {
 
-if (!Number.isNaN(fromQs) && fromQs > 0) return fromQs;
+        if (!table.tHead) {
 
-const p = Number(localStorage.getItem(LS_KEYS.page));
+          const th = document.createElement('thead');
 
-return !Number.isNaN(p) && p > 0 ? p : 1;
+          table.insertBefore(th, table.firstChild);
 
-} catch { return 1; }
+        }
 
-}
+        const th = table.tHead;
 
-function loadLimit(){
+        if (headerRow.parentNode !== th) th.appendChild(headerRow);
 
-try {
+        if (filtersRow.parentNode !== th) th.insertBefore(filtersRow, th.firstChild);
 
-const fromQs = Number(new URLSearchParams(location.search).get('limit'));
+        if (!table.tBodies || table.tBodies.length === 0) table.appendChild(tbody);
 
-if (!Number.isNaN(fromQs) && fromQs > 0) return fromQs;
+        const tb = table.tBodies[0];
 
-const l = Number(localStorage.getItem(LS_KEYS.limit));
+        tb.querySelectorAll('tr#headerRow, tr#filtersRow').forEach(tr => {
 
-return !Number.isNaN(l) && l > 0 ? l : 50;
+          if (tr.id === 'filtersRow') th.insertBefore(tr, th.firstChild);
 
-} catch { return 50; }
+          else th.appendChild(tr);
 
-}
+        });
 
-function saveAll(){
+        Array.from(th.children).forEach(node => {
+          if (node.nodeName !== 'TR') node.remove();
+        });
 
-localStorage.setItem(LS_KEYS.visibleCols, JSON.stringify(state.visibleCols));
+      }
 
-localStorage.setItem(LS_KEYS.filters, JSON.stringify(state.filters));
+      function visibleColumns() {
+        return state.visibleCols.map(id => columns.find(c => c.id === id)).filter(Boolean);
+      }
 
-localStorage.setItem(LS_KEYS.sort, JSON.stringify(state.sort));
+      // Kolon paneli
 
-localStorage.setItem(LS_KEYS.widths, JSON.stringify(state.widths));
+      function buildColumnPanel() {
 
-savePageAndLimit();
+        columnCheckboxes.innerHTML = '';
 
-}
+        columns.forEach(col => {
 
-function savePageAndLimit(){
+          const id = `colchk_${col.id}`;
 
-localStorage.setItem(LS_KEYS.page, String(state.page));
+          const wrap = document.createElement('label');
 
-localStorage.setItem(LS_KEYS.limit, String(state.limit));
+          wrap.className = 'form-check d-flex align-items-center gap-2';
 
-}
-
-// Yapı koruması
-
-function normalizeTableStructure(){
-
-if (!table.tHead) {
-
-const th = document.createElement('thead');
-
-table.insertBefore(th, table.firstChild);
-
-}
-
-const th = table.tHead;
-
-if (headerRow.parentNode !== th) th.appendChild(headerRow);
-
-if (filtersRow.parentNode !== th) th.insertBefore(filtersRow, th.firstChild);
-
-if (!table.tBodies || table.tBodies.length === 0) table.appendChild(tbody);
-
-const tb = table.tBodies[0];
-
-tb.querySelectorAll('tr#headerRow, tr#filtersRow').forEach(tr=>{
-
-if (tr.id === 'filtersRow') th.insertBefore(tr, th.firstChild);
-
-else th.appendChild(tr);
-
-});
-
-Array.from(th.children).forEach(node => { if (node.nodeName !== 'TR') node.remove(); });
-
-}
-
-function visibleColumns(){ return state.visibleCols.map(id => columns.find(c => c.id === id)).filter(Boolean); }
-
-// Kolon paneli
-
-function buildColumnPanel(){
-
-columnCheckboxes.innerHTML = '';
-
-columns.forEach(col=>{
-
-const id = `colchk_${col.id}`;
-
-const wrap = document.createElement('label');
-
-wrap.className = 'form-check d-flex align-items-center gap-2';
-
-wrap.innerHTML = `
+          wrap.innerHTML = `
 
 <input class="form-check-input" type="checkbox" id="${id}" ${state.visibleCols.includes(col.id) ? 'checked' : ''}>
 
@@ -644,121 +828,123 @@ wrap.innerHTML = `
 
 `;
 
-wrap.querySelector('input').addEventListener('change', (e)=>{
+          wrap.querySelector('input').addEventListener('change', (e) => {
 
-const on = e.target.checked;
+            const on = e.target.checked;
 
-if (on) { if (!state.visibleCols.includes(col.id)) state.visibleCols.push(col.id); }
+            if (on) {
+              if (!state.visibleCols.includes(col.id)) state.visibleCols.push(col.id);
+            } else {
+              state.visibleCols = state.visibleCols.filter(x => x !== col.id);
+            }
 
-else { state.visibleCols = state.visibleCols.filter(x => x !== col.id); }
+            saveAll();
 
-saveAll();
+            rebuildHeadAndCols();
 
-rebuildHeadAndCols();
+            state.page = 1;
 
-state.page = 1;
+            savePageAndLimit();
 
-savePageAndLimit();
+            render();
 
-render();
+          });
 
-});
+          columnCheckboxes.appendChild(wrap);
 
-columnCheckboxes.appendChild(wrap);
+        });
 
-});
+      }
 
-}
+      function initPageSizeSelect() {
 
-function initPageSizeSelect(){
+        const opts = Array.from(pageSizeSelect.options).map(o => Number(o.value));
 
-const opts = Array.from(pageSizeSelect.options).map(o => Number(o.value));
+        if (!opts.includes(state.limit)) {
 
-if (!opts.includes(state.limit)) {
+          const opt = document.createElement('option');
 
-const opt = document.createElement('option');
+          opt.value = String(state.limit);
 
-opt.value = String(state.limit);
+          opt.textContent = state.limit + ' satır';
 
-opt.textContent = state.limit + ' satır';
+          pageSizeSelect.appendChild(opt);
 
-pageSizeSelect.appendChild(opt);
+        }
 
-}
+        pageSizeSelect.value = String(state.limit);
 
-pageSizeSelect.value = String(state.limit);
+      }
 
-}
+      // Başlık ve filtreleri kur
 
-// Başlık ve filtreleri kur
+      function rebuildHeadAndCols() {
 
-function rebuildHeadAndCols(){
+        normalizeTableStructure();
 
-normalizeTableStructure();
+        const th = table.tHead;
 
-const th = table.tHead;
+        if (headerRow.parentNode !== th) th.appendChild(headerRow);
 
-if (headerRow.parentNode !== th) th.appendChild(headerRow);
+        if (filtersRow.parentNode !== th) th.insertBefore(filtersRow, th.firstChild);
 
-if (filtersRow.parentNode !== th) th.insertBefore(filtersRow, th.firstChild);
+        headerRow.replaceChildren();
 
-headerRow.replaceChildren();
+        filtersRow.replaceChildren();
 
-filtersRow.replaceChildren();
+        colGroup.replaceChildren();
 
-colGroup.replaceChildren();
+        const cols = visibleColumns();
 
-const cols = visibleColumns();
+        cols.forEach((col) => {
 
-cols.forEach((col)=>{
+          const c = document.createElement('col');
 
-const c = document.createElement('col');
+          c.dataset.colId = col.id;
 
-c.dataset.colId = col.id;
+          const savedW = Number(state.widths[col.id] || 0);
 
-const savedW = Number(state.widths[col.id] || 0);
+          if (savedW > 0) c.style.width = savedW + 'px';
 
-if (savedW > 0) c.style.width = savedW + 'px';
+          colGroup.appendChild(c);
 
-colGroup.appendChild(c);
+          const thCell = document.createElement('th');
 
-const thCell = document.createElement('th');
+          thCell.textContent = col.label;
 
-thCell.textContent = col.label;
+          if (col.className) thCell.className = col.className;
 
-if (col.className) thCell.className = col.className;
+          thCell.classList.add('sortable');
 
-thCell.classList.add('sortable');
+          if (state.sort.by === col.id) thCell.dataset.sort = state.sort.dir;
 
-if (state.sort.by === col.id) thCell.dataset.sort = state.sort.dir;
+          thCell.addEventListener('click', (ev) => {
 
-thCell.addEventListener('click', (ev)=>{
+            if ((ev.target).classList?.contains('col-resizer')) return;
 
-if ((ev.target).classList?.contains('col-resizer')) return;
+            toggleSort(col.id);
 
-toggleSort(col.id);
+          });
 
-});
+          const resizer = document.createElement('div');
 
-const resizer = document.createElement('div');
+          resizer.className = 'col-resizer';
 
-resizer.className = 'col-resizer';
+          resizer.addEventListener('mousedown', (e) => startResize(e, col.id));
 
-resizer.addEventListener('mousedown', (e)=>startResize(e, col.id));
+          thCell.appendChild(resizer);
 
-thCell.appendChild(resizer);
+          headerRow.appendChild(thCell);
 
-headerRow.appendChild(thCell);
+          const tf = document.createElement('th');
 
-const tf = document.createElement('th');
+          tf.className = 'filter-cell';
 
-tf.className = 'filter-cell';
+          const ft = col.filterType || 'text';
 
-const ft = col.filterType || 'text';
+          if (ft === 'date') {
 
-if (ft === 'date') {
-
-tf.innerHTML = `
+            tf.innerHTML = `
 
 <div class="d-grid" style="grid-template-columns:1fr 1fr; gap:.25rem;">
 
@@ -770,11 +956,11 @@ tf.innerHTML = `
 
 `;
 
-} else if (ft === 'boolean') {
+          } else if (ft === 'boolean') {
 
-const cur = state.filters[col.id]?.val ?? '';
+            const cur = state.filters[col.id]?.val ?? '';
 
-tf.innerHTML = `
+            tf.innerHTML = `
 
 <select class="form-select form-select-sm" data-key="${col.id}" data-kind="bool">
 
@@ -788,567 +974,649 @@ tf.innerHTML = `
 
 `;
 
-} else {
+          } else {
 
-const cur = state.filters[col.id]?.val ?? '';
+            const cur = state.filters[col.id]?.val ?? '';
 
-tf.innerHTML = `<input type="text" class="form-control form-control-sm" placeholder="Ara..." data-key="${col.id}" data-kind="text" value="${escapeAttr(cur)}">`;
+            tf.innerHTML = `<input type="text" class="form-control form-control-sm" placeholder="Ara..." data-key="${col.id}" data-kind="text" value="${escapeAttr(cur)}">`;
 
-}
+          }
 
-filtersRow.appendChild(tf);
+          filtersRow.appendChild(tf);
 
-});
+        });
 
-// Filtre bindings
+        // Filtre bindings
 
-filtersRow.querySelectorAll('input[data-kind="text"]').forEach(inp=>{
+        filtersRow.querySelectorAll('input[data-kind="text"]').forEach(inp => {
 
-inp.addEventListener('input', debounce(()=>{
+          inp.addEventListener('input', debounce(() => {
 
-const key = inp.dataset.key;
+            const key = inp.dataset.key;
 
-state.filters[key] = { val: inp.value };
+            state.filters[key] = {
+              val: inp.value
+            };
 
-state.page = 1;
+            state.page = 1;
 
-saveAll(); render();
+            saveAll();
+            render();
 
-}, 200));
+          }, 200));
 
-});
+        });
 
-filtersRow.querySelectorAll('select[data-kind="bool"]').forEach(sel=>{
+        filtersRow.querySelectorAll('select[data-kind="bool"]').forEach(sel => {
 
-sel.addEventListener('change', ()=>{
+          sel.addEventListener('change', () => {
 
-const key = sel.dataset.key;
+            const key = sel.dataset.key;
 
-state.filters[key] = { val: sel.value };
+            state.filters[key] = {
+              val: sel.value
+            };
 
-state.page = 1;
+            state.page = 1;
 
-saveAll(); render();
+            saveAll();
+            render();
 
-});
+          });
 
-});
+        });
 
-filtersRow.querySelectorAll('input[data-kind="from"], input[data-kind="to"]').forEach(inp=>{
+        filtersRow.querySelectorAll('input[data-kind="from"], input[data-kind="to"]').forEach(inp => {
 
-inp.addEventListener('change', ()=>{
+          inp.addEventListener('change', () => {
 
-const key = inp.dataset.key, kind = inp.dataset.kind;
+            const key = inp.dataset.key,
+              kind = inp.dataset.kind;
 
-state.filters[key] = state.filters[key] || {};
+            state.filters[key] = state.filters[key] || {};
 
-state.filters[key][kind] = inp.value;
+            state.filters[key][kind] = inp.value;
 
-state.page = 1;
+            state.page = 1;
 
-saveAll(); render();
+            saveAll();
+            render();
 
-});
+          });
 
-});
+        });
 
-normalizeTableStructure();
+        normalizeTableStructure();
 
-}
+      }
 
-// Sütun genişliği
+      // Sütun genişliği
 
-function startResize(e, colId){
+      function startResize(e, colId) {
 
-e.preventDefault();
+        e.preventDefault();
 
-const startX = e.pageX;
+        const startX = e.pageX;
 
-const colEl = [...colGroup.children].find(c => c.dataset.colId === colId);
+        const colEl = [...colGroup.children].find(c => c.dataset.colId === colId);
 
-const startWidth = (colEl && colEl.style.width) ? parseInt(colEl.style.width, 10) : getComputedWidth(colId);
+        const startWidth = (colEl && colEl.style.width) ? parseInt(colEl.style.width, 10) : getComputedWidth(colId);
 
-const min = colId === 'id' || colId === 'user_id' || colId === 'company_id' ? 56 : 70;
+        const min = colId === 'id' || colId === 'user_id' || colId === 'company_id' ? 56 : 70;
 
-const th = [...headerRow.children][visibleColumns().findIndex(c => c.id === colId)];
+        const th = [...headerRow.children][visibleColumns().findIndex(c => c.id === colId)];
 
-if (th) th.classList.add('resizing');
+        if (th) th.classList.add('resizing');
 
-const resizer = th?.querySelector('.col-resizer');
+        const resizer = th?.querySelector('.col-resizer');
 
-if (resizer) resizer.classList.add('active');
+        if (resizer) resizer.classList.add('active');
 
-function onMouseMove(ev){
+        function onMouseMove(ev) {
 
-const dx = ev.pageX - startX;
+          const dx = ev.pageX - startX;
 
-const newW = Math.max(min, Math.round(startWidth + dx));
+          const newW = Math.max(min, Math.round(startWidth + dx));
 
-if (colEl) colEl.style.width = newW + 'px';
+          if (colEl) colEl.style.width = newW + 'px';
 
-}
+        }
 
-function onMouseUp(){
+        function onMouseUp() {
 
-document.removeEventListener('mousemove', onMouseMove);
+          document.removeEventListener('mousemove', onMouseMove);
 
-document.removeEventListener('mouseup', onMouseUp);
+          document.removeEventListener('mouseup', onMouseUp);
 
-if (th) th.classList.remove('resizing');
+          if (th) th.classList.remove('resizing');
 
-if (resizer) resizer.classList.remove('active');
+          if (resizer) resizer.classList.remove('active');
 
-const finalW = Math.max(min, parseInt((colEl?.style.width || startWidth), 10));
+          const finalW = Math.max(min, parseInt((colEl?.style.width || startWidth), 10));
 
-state.widths[colId] = finalW;
+          state.widths[colId] = finalW;
 
-saveAll();
+          saveAll();
 
-}
+        }
 
-document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mousemove', onMouseMove);
 
-document.addEventListener('mouseup', onMouseUp);
+        document.addEventListener('mouseup', onMouseUp);
 
-}
+      }
 
-function getComputedWidth(colId){
+      function getComputedWidth(colId) {
 
-const idx = visibleColumns().findIndex(c=>c.id===colId);
+        const idx = visibleColumns().findIndex(c => c.id === colId);
 
-if (idx < 0) return 100;
+        if (idx < 0) return 100;
 
-const th = headerRow.children[idx];
+        const th = headerRow.children[idx];
 
-if (!th) return 100;
+        if (!th) return 100;
 
-return Math.round(th.getBoundingClientRect().width);
+        return Math.round(th.getBoundingClientRect().width);
 
-}
+      }
 
-// Sıralama
+      // Sıralama
 
-function toggleSort(colId){
+      function toggleSort(colId) {
 
-if (state.sort.by === colId) state.sort.dir = state.sort.dir === 'asc' ? 'desc' : 'asc';
+        if (state.sort.by === colId) state.sort.dir = state.sort.dir === 'asc' ? 'desc' : 'asc';
 
-else { state.sort.by = colId; state.sort.dir = 'asc'; }
+        else {
+          state.sort.by = colId;
+          state.sort.dir = 'asc';
+        }
 
-state.page = 1;
+        state.page = 1;
 
-saveAll();
+        saveAll();
 
-rebuildHeadAndCols();
+        rebuildHeadAndCols();
 
-render();
+        render();
 
-}
+      }
 
-// Filtre + sıralama
+      // Filtre + sıralama
 
-function applyFilters(rows){
+      function applyFilters(rows) {
 
-return rows.filter(r=>{
+        return rows.filter(r => {
 
-for (const col of columns){
+          for (const col of columns) {
 
-const f = state.filters[col.id];
+            const f = state.filters[col.id];
 
-if (!f) continue;
+            if (!f) continue;
 
-if (col.filterType === 'text') {
+            if (col.filterType === 'text') {
 
-const needle = (f.val ?? '').trim().toLowerCase();
+              const needle = (f.val ?? '').trim().toLowerCase();
 
-if (needle) {
+              if (needle) {
 
-const hay = String(r[col.id] ?? '').toLowerCase();
+                const hay = String(r[col.id] ?? '').toLowerCase();
 
-if (!hay.includes(needle)) return false;
+                if (!hay.includes(needle)) return false;
 
-}
+              }
 
-} else if (col.filterType === 'boolean') {
+            } else if (col.filterType === 'boolean') {
 
-const val = String(f.val ?? '');
+              const val = String(f.val ?? '');
 
-if (val) {
+              if (val) {
 
-const raw = r[col.id];
+                const raw = r[col.id];
 
-const boolVal = (typeof raw === 'boolean') ? raw : ['1','true','on','yes','evet'].includes(String(raw).toLowerCase());
+                const boolVal = (typeof raw === 'boolean') ? raw : ['1', 'true', 'on', 'yes', 'evet'].includes(String(raw).toLowerCase());
 
-if ((val === 'true') !== boolVal) return false;
+                if ((val === 'true') !== boolVal) return false;
 
-}
+              }
 
-} else if (col.filterType === 'date') {
+            } else if (col.filterType === 'date') {
 
-const from = f.from ? Date.parse(f.from) : null;
+              const from = f.from ? Date.parse(f.from) : null;
 
-const to = f.to ? Date.parse(f.to) : null;
+              const to = f.to ? Date.parse(f.to) : null;
 
-const v = Date.parse(r[col.id] ?? '');
+              const v = Date.parse(r[col.id] ?? '');
 
-if (from && !(v >= from)) return false;
+              if (from && !(v >= from)) return false;
 
-if (to && !(v <= to)) return false;
+              if (to && !(v <= to)) return false;
 
-}
+            }
 
-}
+          }
 
-return true;
+          return true;
 
-});
+        });
 
-}
+      }
 
-function applySort(rows){
+      function applySort(rows) {
 
-const col = columns.find(c => c.id === state.sort.by);
+        const col = columns.find(c => c.id === state.sort.by);
 
-if (!col) return rows;
+        if (!col) return rows;
 
-const dir = state.sort.dir === 'asc' ? 1 : -1;
+        const dir = state.sort.dir === 'asc' ? 1 : -1;
 
-return [...rows].sort((a,b)=>{
+        return [...rows].sort((a, b) => {
 
-const avRaw = a[col.id];
+          const avRaw = a[col.id];
 
-const bvRaw = b[col.id];
+          const bvRaw = b[col.id];
 
-if (['id','user_id','company_id'].includes(col.id)) {
+          if (['id', 'user_id', 'company_id'].includes(col.id)) {
 
-const av = Number(avRaw ?? 0), bv = Number(bvRaw ?? 0);
+            const av = Number(avRaw ?? 0),
+              bv = Number(bvRaw ?? 0);
 
-return (av < bv ? -1 : av > bv ? 1 : 0) * dir;
+            return (av < bv ? -1 : av > bv ? 1 : 0) * dir;
 
-}
+          }
 
-if (col.id === 'scanned_at' || col.filterType === 'date') {
+          if (col.id === 'scanned_at' || col.filterType === 'date') {
 
-const at = Date.parse(avRaw ?? '') || 0;
+            const at = Date.parse(avRaw ?? '') || 0;
 
-const bt = Date.parse(bvRaw ?? '') || 0;
+            const bt = Date.parse(bvRaw ?? '') || 0;
 
-return (at < bt ? -1 : at > bt ? 1 : 0) * dir;
+            return (at < bt ? -1 : at > bt ? 1 : 0) * dir;
 
-}
+          }
 
-const av = String(avRaw ?? '').toLowerCase();
+          const av = String(avRaw ?? '').toLowerCase();
 
-const bv = String(bvRaw ?? '').toLowerCase();
+          const bv = String(bvRaw ?? '').toLowerCase();
 
-if (av < bv) return -1 * dir;
+          if (av < bv) return -1 * dir;
 
-if (av > bv) return 1 * dir;
+          if (av > bv) return 1 * dir;
 
-return 0;
+          return 0;
 
-});
+        });
 
-}
+      }
 
-// Toplam ve sayfa bilgisi
+      // Toplam ve sayfa bilgisi
 
-function currentTotals(){
+      function currentTotals() {
 
-const filtered = applyFilters(DATA);
+        const filtered = applyFilters(DATA);
 
-const total = filtered.length;
+        const total = filtered.length;
 
-const totalPages = Math.max(1, Math.ceil(total / Math.max(1, state.limit)));
+        const totalPages = Math.max(1, Math.ceil(total / Math.max(1, state.limit)));
 
-if (state.page > totalPages) state.page = totalPages;
+        if (state.page > totalPages) state.page = totalPages;
 
-return { filtered, total, totalPages };
+        return {
+          filtered,
+          total,
+          totalPages
+        };
 
-}
+      }
 
-// Render
+      // Render
 
-function render(){
+      function render() {
 
-normalizeTableStructure();
+        normalizeTableStructure();
 
-const cols = visibleColumns();
+        const cols = visibleColumns();
 
-const { filtered, total, totalPages } = currentTotals();
+        const {
+          filtered,
+          total,
+          totalPages
+        } = currentTotals();
 
-const sorted = applySort(filtered);
+        const sorted = applySort(filtered);
 
-const startIndex = (Math.max(1, state.page) - 1) * Math.max(1, state.limit);
+        const startIndex = (Math.max(1, state.page) - 1) * Math.max(1, state.limit);
 
-const pageRows = sorted.slice(startIndex, startIndex + state.limit);
+        const pageRows = sorted.slice(startIndex, startIndex + state.limit);
 
-tbody.innerHTML = '';
+        tbody.innerHTML = '';
 
-for (const r of pageRows){
+        for (const r of pageRows) {
 
-const tr = document.createElement('tr');
+          const tr = document.createElement('tr');
 
-for (const col of cols){
+          for (const col of cols) {
 
-const td = document.createElement('td');
+            const td = document.createElement('td');
 
-if (col.className) td.className = col.className;
+            if (col.className) td.className = col.className;
 
-if (col.id === 'scanned_at') {
+            if (col.id === 'scanned_at') {
 
-const v = r.scanned_at;
+              const v = r.scanned_at;
 
-td.textContent = v ? new Date(v).toLocaleString() : '';
+              td.textContent = v ? new Date(v).toLocaleString() : '';
 
-} else if (col.id === 'type') {
+            } else if (col.id === 'type') {
 
-const t = String(r.type ?? '').toLowerCase();
+              const t = String(r.type ?? '').toLowerCase();
 
-td.innerHTML = t === 'in'
+              td.innerHTML = t === 'in'
 
-? '<span class="badge ok">in</span>'
+                ?
+                '<span class="badge ok">in</span>'
 
-: '<span class="badge no">out</span>';
+                :
+                '<span class="badge no">out</span>';
 
-} else {
+            } else {
 
-td.textContent = r[col.id] == null ? '' : String(r[col.id]);
+              td.textContent = r[col.id] == null ? '' : String(r[col.id]);
 
-}
+            }
 
-tr.appendChild(td);
+            tr.appendChild(td);
 
-}
+          }
 
-tbody.appendChild(tr);
+          tbody.appendChild(tr);
 
-}
+        }
 
-// Sort indikatörü
+        // Sort indikatörü
 
-headerRow.querySelectorAll('th.sortable').forEach(th => th.removeAttribute('data-sort'));
+        headerRow.querySelectorAll('th.sortable').forEach(th => th.removeAttribute('data-sort'));
 
-const idx = visibleColumns().findIndex(c => c.id === state.sort.by);
+        const idx = visibleColumns().findIndex(c => c.id === state.sort.by);
 
-if (idx >= 0) headerRow.children[idx].dataset.sort = state.sort.dir;
+        if (idx >= 0) headerRow.children[idx].dataset.sort = state.sort.dir;
 
-// Footer/pager
+        // Footer/pager
 
-footerStats.innerHTML = `Toplam: <strong>${total}</strong> | Sayfa: ${state.page}/${totalPages}`;
+        footerStats.innerHTML = `Toplam: <strong>${total}</strong> | Sayfa: ${state.page}/${totalPages}`;
 
-pageIndicator.textContent = `${state.page} / ${totalPages}`;
+        pageIndicator.textContent = `${state.page} / ${totalPages}`;
 
-setPagerState(totalPages);
+        setPagerState(totalPages);
 
-updateQueryParams({ page: state.page, limit: state.limit });
+        updateQueryParams({
+          page: state.page,
+          limit: state.limit
+        });
 
-}
+      }
 
-function setPagerState(totalPages){
+      function setPagerState(totalPages) {
 
-const firstLi = pager.querySelector('a[data-page="first"]').closest('.page-item');
+        const firstLi = pager.querySelector('a[data-page="first"]').closest('.page-item');
 
-const prevLi = pager.querySelector('a[data-page="prev"]').closest('.page-item');
+        const prevLi = pager.querySelector('a[data-page="prev"]').closest('.page-item');
 
-const nextLi = pager.querySelector('a[data-page="next"]').closest('.page-item');
+        const nextLi = pager.querySelector('a[data-page="next"]').closest('.page-item');
 
-const lastLi = pager.querySelector('a[data-page="last"]').closest('.page-item');
+        const lastLi = pager.querySelector('a[data-page="last"]').closest('.page-item');
 
-if (state.page <= 1){ firstLi.classList.add('disabled'); prevLi.classList.add('disabled'); }
+        if (state.page <= 1) {
+          firstLi.classList.add('disabled');
+          prevLi.classList.add('disabled');
+        } else {
+          firstLi.classList.remove('disabled');
+          prevLi.classList.remove('disabled');
+        }
 
-else { firstLi.classList.remove('disabled'); prevLi.classList.remove('disabled'); }
+        if (state.page >= totalPages) {
+          nextLi.classList.add('disabled');
+          lastLi.classList.add('disabled');
+        } else {
+          nextLi.classList.remove('disabled');
+          lastLi.classList.remove('disabled');
+        }
 
-if (state.page >= totalPages){ nextLi.classList.add('disabled'); lastLi.classList.add('disabled'); }
+      }
 
-else { nextLi.classList.remove('disabled'); lastLi.classList.remove('disabled'); }
+      // Export / Template / Upload
 
-}
+      function exportAllToCsv() {
 
-// Export / Template / Upload
+        const exportCols = allFields;
 
-function exportAllToCsv(){
+        const headers = exportCols.map(c => c.id);
 
-const exportCols = allFields;
+        const rows = DATA.map(r => exportCols.map(c => formatForCsv(c.id, r[c.id])));
 
-const headers = exportCols.map(c => c.id);
+        const csv = toCsv([headers, ...rows]);
 
-const rows = DATA.map(r => exportCols.map(c => formatForCsv(c.id, r[c.id])));
+        const blob = new Blob(['\uFEFF' + csv], {
+          type: 'text/csv;charset=utf-8;'
+        });
 
-const csv = toCsv([headers, ...rows]);
+        triggerDownload(blob, 'attendance_full_export.csv');
 
-const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+      }
 
-triggerDownload(blob, 'attendance_full_export.csv');
+      function downloadTemplate() {
 
-}
+        const headers = allFields.map(c => c.id);
 
-function downloadTemplate(){
+        const sample1 = {
 
-const headers = allFields.map(c => c.id);
+          id: '',
+          scanned_at: '2025-01-01T08:30:00Z',
+          type: 'in',
 
-const sample1 = {
+          user_id: '123',
+          first_name: 'Ahmet',
+          last_name: 'Yılmaz',
 
-id:'', scanned_at:'2025-01-01T08:30:00Z', type:'in',
+          company_id: '',
+          company_name: 'Örnek Firma AŞ',
 
-user_id:'123', first_name:'Ahmet', last_name:'Yılmaz',
+          source_device: 'Turnike-1',
 
-company_id:'', company_name:'Örnek Firma AŞ',
+          notes: '',
+          created_at: '',
+          updated_at: ''
 
-source_device:'Turnike-1',
+        };
 
-notes:'', created_at:'', updated_at:''
+        const sample2 = {
 
-};
+          id: '',
+          scanned_at: '2025-01-01T17:45:00Z',
+          type: 'out',
 
-const sample2 = {
+          user_id: '123',
+          first_name: 'Ahmet',
+          last_name: 'Yılmaz',
 
-id:'', scanned_at:'2025-01-01T17:45:00Z', type:'out',
+          company_id: '',
+          company_name: 'Örnek Firma AŞ',
 
-user_id:'123', first_name:'Ahmet', last_name:'Yılmaz',
+          source_device: 'Turnike-1',
 
-company_id:'', company_name:'Örnek Firma AŞ',
+          notes: 'Geç çıkış',
+          created_at: '',
+          updated_at: ''
 
-source_device:'Turnike-1',
+        };
 
-notes:'Geç çıkış', created_at:'', updated_at:''
+        const rows = [headers, ...[sample1, sample2].map(s => headers.map(h => formatForCsv(h, s[h])))];
 
-};
+        const csv = toCsv(rows);
 
-const rows = [headers, ...[sample1, sample2].map(s => headers.map(h => formatForCsv(h, s[h])))];
+        const blob = new Blob(['\uFEFF' + csv], {
+          type: 'text/csv;charset=utf-8;'
+        });
 
-const csv = toCsv(rows);
+        triggerDownload(blob, 'attendance_template_full.csv');
 
-const blob = new Blob(['\uFEFF' + csv], { type:'text/csv;charset=utf-8;' });
+      }
 
-triggerDownload(blob, 'attendance_template_full.csv');
+      async function handleUpload(e) {
 
-}
+        const file = e.target.files?.[0];
 
-async function handleUpload(e){
+        if (!file) return;
 
-const file = e.target.files?.[0];
+        const name = file.name.toLowerCase();
 
-if (!file) return;
+        try {
 
-const name = file.name.toLowerCase();
+          let rows;
 
-try {
+          if (name.endsWith('.csv')) rows = await readCsv(file);
 
-let rows;
+          else rows = await tryReadAsTextCsv(file);
 
-if (name.endsWith('.csv')) rows = await readCsv(file);
+          if (!rows || rows.length === 0) throw new Error('Boş dosya veya okunamadı.');
 
-else rows = await tryReadAsTextCsv(file);
+          const preview = buildPreviewTable(rows);
 
-if (!rows || rows.length === 0) throw new Error('Boş dosya veya okunamadı.');
+          document.getElementById('uploadPreview').innerHTML = preview.html;
 
-const preview = buildPreviewTable(rows);
+          document.getElementById('uploadPayload').value = JSON.stringify({
+            rows
+          });
 
-document.getElementById('uploadPreview').innerHTML = preview.html;
+          const modal = new bootstrap.Modal(document.getElementById('uploadModal'));
 
-document.getElementById('uploadPayload').value = JSON.stringify({ rows });
+          modal.show();
 
-const modal = new bootstrap.Modal(document.getElementById('uploadModal'));
+        } catch (err) {
 
-modal.show();
+          alert('Dosya okunamadı: ' + (err?.message || err));
 
-} catch (err){
+          e.target.value = '';
 
-alert('Dosya okunamadı: ' + (err?.message || err));
+        }
 
-e.target.value = '';
+      }
 
-}
+      // CSV ve yardımcılar
 
-}
+      function readCsv(file) {
 
-// CSV ve yardımcılar
+        return new Promise((resolve, reject) => {
 
-function readCsv(file){
+          const reader = new FileReader();
 
-return new Promise((resolve, reject)=>{
+          reader.onerror = () => reject(new Error('Okuma hatası'));
 
-const reader = new FileReader();
+          reader.onload = () => {
+            try {
+              resolve(parseCsv(String(reader.result)));
+            } catch (e) {
+              reject(e);
+            }
+          };
 
-reader.onerror = ()=>reject(new Error('Okuma hatası'));
+          reader.readAsText(file, 'utf-8');
 
-reader.onload = ()=>{ try { resolve(parseCsv(String(reader.result))); } catch(e){ reject(e); } };
+        });
 
-reader.readAsText(file, 'utf-8');
+      }
 
-});
+      function parseCsv(text) {
 
-}
+        const rows = [];
+        let row = [],
+          val = '',
+          inQuotes = false;
 
-function parseCsv(text){
+        for (let i = 0; i < text.length; i++) {
 
-const rows=[]; let row=[], val='', inQuotes=false;
+          const ch = text[i];
 
-for (let i=0;i<text.length;i++){
+          if (inQuotes) {
 
-const ch=text[i];
+            if (ch === '"') {
+              if (text[i + 1] === '"') {
+                val += '"';
+                i++;
+              } else {
+                inQuotes = false;
+              }
+            } else {
+              val += ch;
+            }
 
-if (inQuotes){
+          } else {
 
-if (ch === '"'){ if (text[i+1] === '"'){ val+='"'; i++; } else { inQuotes=false; } }
+            if (ch === '"') inQuotes = true;
 
-else { val += ch; }
+            else if (ch === ',') {
+              row.push(val);
+              val = '';
+            } else if (ch === '\r') {
+              /* skip */
+            } else if (ch === '\n') {
+              row.push(val);
+              rows.push(row);
+              row = [];
+              val = '';
+            } else {
+              val += ch;
+            }
 
-} else {
+          }
 
-if (ch === '"') inQuotes=true;
+        }
 
-else if (ch === ','){ row.push(val); val=''; }
+        if (val.length || row.length) {
+          row.push(val);
+          rows.push(row);
+        }
 
-else if (ch === '\r'){ /* skip */ }
+        return rows;
 
-else if (ch === '\n'){ row.push(val); rows.push(row); row=[]; val=''; }
+      }
 
-else { val += ch; }
+      function tryReadAsTextCsv(file) {
 
-}
+        return new Promise((resolve) => {
 
-}
+          const reader = new FileReader();
 
-if (val.length || row.length){ row.push(val); rows.push(row); }
+          reader.onerror = () => resolve([
+            ['Okuma hatası']
+          ]);
 
-return rows;
+          reader.onload = () => {
 
-}
+            const text = String(reader.result || '');
 
-function tryReadAsTextCsv(file){
+            if (text.includes(',') || text.includes(';')) resolve(parseCsv(text));
 
-return new Promise((resolve)=>{
+            else resolve([
+              ['Uyarı: XLSX istemci tarafında parse edilmedi. CSV kullanın ya da XLSX desteği ekleyin.']
+            ]);
 
-const reader = new FileReader();
+          };
 
-reader.onerror = () => resolve([['Okuma hatası']]);
+          reader.readAsText(file);
 
-reader.onload = ()=>{
+        });
 
-const text = String(reader.result || '');
+      }
 
-if (text.includes(',') || text.includes(';')) resolve(parseCsv(text));
+      function buildPreviewTable(rows) {
 
-else resolve([['Uyarı: XLSX istemci tarafında parse edilmedi. CSV kullanın ya da XLSX desteği ekleyin.']]);
+        const maxRows = Math.min(rows.length, 10);
 
-};
+        const headers = rows[0] || [];
 
-reader.readAsText(file);
+        const bodyRows = rows.slice(1, maxRows);
 
-});
-
-}
-
-function buildPreviewTable(rows){
-
-const maxRows = Math.min(rows.length, 10);
-
-const headers = rows[0] || [];
-
-const bodyRows = rows.slice(1, maxRows);
-
-const html = `
+        const html = `
 
 <div class="small text-muted mb-2">
 
@@ -1388,72 +1656,94 @@ Beklenen başlıklar: ${escapeHtml(allFields.map(f=>f.id).join(', '))}.
 
 `;
 
-return { html };
+        return {
+          html
+        };
 
-}
+      }
 
-function toCsv(rows){ return rows.map(row => row.map(csvEscape).join(',')).join('\r\n'); }
+      function toCsv(rows) {
+        return rows.map(row => row.map(csvEscape).join(',')).join('\r\n');
+      }
 
-function csvEscape(v){ const s = String(v ?? ''); return /[",\n]/.test(s) ? `"${s.replaceAll('"','""')}"` : s; }
+      function csvEscape(v) {
+        const s = String(v ?? '');
+        return /[",\n]/.test(s) ? `"${s.replaceAll('"','""')}"` : s;
+      }
 
-function triggerDownload(blob, filename){ const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=filename; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000); }
+      function triggerDownload(blob, filename) {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = filename;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+      }
 
-function escapeHtml(str){ return String(str).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;'); }
+      function escapeHtml(str) {
+        return String(str).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;');
+      }
 
-function escapeAttr(str){ return escapeHtml(str).replaceAll('\n',' '); }
+      function escapeAttr(str) {
+        return escapeHtml(str).replaceAll('\n', ' ');
+      }
 
-function debounce(fn, wait){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a), wait); }; }
+      function debounce(fn, wait) {
+        let t;
+        return (...a) => {
+          clearTimeout(t);
+          t = setTimeout(() => fn(...a), wait);
+        };
+      }
 
-function formatForCsv(field, value){
+      function formatForCsv(field, value) {
 
-if (value == null) return '';
+        if (value == null) return '';
 
-if (field === 'scanned_at' || ['created_at','updated_at'].includes(field)) {
+        if (field === 'scanned_at' || ['created_at', 'updated_at'].includes(field)) {
 
-const d = new Date(value);
+          const d = new Date(value);
 
-return isNaN(d) ? String(value) : d.toISOString();
+          return isNaN(d) ? String(value) : d.toISOString();
 
-}
+        }
 
-return String(value);
+        return String(value);
 
-}
+      }
 
-function updateQueryParams(obj){
+      function updateQueryParams(obj) {
 
-try {
+        try {
 
-const url = new URL(window.location.href);
+          const url = new URL(window.location.href);
 
-if (obj.page) url.searchParams.set('page', String(obj.page));
+          if (obj.page) url.searchParams.set('page', String(obj.page));
 
-if (obj.limit) url.searchParams.set('limit', String(obj.limit));
+          if (obj.limit) url.searchParams.set('limit', String(obj.limit));
 
-window.history.replaceState({}, '', url.toString());
+          window.history.replaceState({}, '', url.toString());
 
-} catch { /* no-op */ }
+        } catch {
+          /* no-op */
+        }
 
-}
+      }
 
-})();
+    })();
+  </script>
 
-</script>
-
-<?php $pageScripts = ob_get_clean(); ?>
+  <?php $pageScripts = ob_get_clean(); ?>
 
 <?php else: ?>
 
-<div class="alert alert-light border d-flex align-items-center" role="alert">
+  <div class="alert alert-light border d-flex align-items-center" role="alert">
 
-<i class="bi bi-inboxes me-2"></i> Hiç kayıt bulunamadı.
+    <i class="bi bi-inboxes me-2"></i> Hiç kayıt bulunamadı.
 
-</div>
+  </div>
 
 <?php endif; ?>
 
 <?php
 
 $content = ob_get_clean();
-
-include __DIR__ . '/../layouts/base.php';
